@@ -213,19 +213,6 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
 </head>
 <body>
 
-<!-- Auth screen -->
-<div id="auth-screen" style="display:none;position:fixed;inset:0;background:#f8f7f4;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;">
-  <div style="font-family:'DM Serif Display',serif;font-size:36px;color:#1a1a1a;letter-spacing:-0.5px;">Linkpad</div>
-  <div style="font-size:14px;color:#aaa;margin-bottom:8px;">Your personal link saver</div>
-  <button id="btn-google-signin" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #e8e6e1;border-radius:12px;padding:12px 24px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;color:#1a1a1a;box-shadow:0 2px 10px rgba(0,0,0,0.06);transition:box-shadow 0.15s,transform 0.1s;">
-    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-    Continue with Google
-  </button>
-</div>
-
-<!-- App wrapper -->
-<div id="app-wrapper" style="display:flex;flex-direction:column;height:100vh;">
-
 <!-- Install banner (shown on mobile before PWA install) -->
 <div id="install-banner">
   <span><strong>Add Linkpad to your home screen</strong><small>Save links from any app with one tap</small></span>
@@ -246,11 +233,8 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
   </div>
   <div id="header-right">
     <button id="btn-bookmarklet">🔖 Bookmarklet</button>
-    <div id="user-info" style="display:flex;align-items:center;gap:8px;margin-left:4px;">
-      <div id="user-avatar" style="width:30px;height:30px;border-radius:50%;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;"></div>
-      <span id="user-name" style="font-size:12px;color:#aaa;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-      <button id="btn-signout" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:#aaa;cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#aaa';">Sign out</button>
-    </div>
+    <button id="btn-export" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:10px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#888;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#888';">⬇ Export</button>
+    <label id="btn-import" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:10px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#888;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#888';">⬆ Import<input type="file" id="import-file" accept=".json" style="display:none;"/></label>
     <input type="text" id="search-input" placeholder="Search links…"/>
     <button class="btn-primary" id="btn-add-link">+ Add Link</button>
     <button class="btn-primary" id="btn-new-notebook">+ New Notebook</button>
@@ -341,30 +325,7 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
 
 <div id="toast"></div>
 
-<script type="module">
-// ── Firebase ───────────────────────────────────────────────────────────────
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCvrG5L654oER0N2oYkuEh_kpX4MJ5gSMg",
-  authDomain: "linkpad-e5242.firebaseapp.com",
-  projectId: "linkpad-e5242",
-  storageBucket: "linkpad-e5242.firebasestorage.app",
-  messagingSenderId: "570478168043",
-  appId: "1:570478168043:web:773f0a394123c2d1447bae"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-let currentUser = null;
-let unsubscribe = null;
-
-// ── Constants ──────────────────────────────────────────────────────────────
+<script>
 const COLORS=["#f97316","#6366f1","#10b981","#ec4899","#f59e0b","#14b8a6","#8b5cf6","#ef4444","#0ea5e9","#84cc16","#f43f5e","#a855f7","#06b6d4","#d97706","#64748b","#e11d48","#16a34a","#7c3aed","#0284c7","#dc2626"];
 const EMOJIS=["📁","🎨","💻","📖","🎵","✈️","🍕","💡","🔖","⭐","🌿","🔥","🎯","🧠","🎬","🛒","📸","🎮","🏋️","🌍","💼","🎓","🏠","🚀","💰","🎭","📰","🔬","🎸","🌸","🍜","☕","🏖️","🎪","💊","🐾","🎁","🧪","🏆","📊","🛠️","🌙","❤️","🦋","🎲","🧩","🎤","🌊","🍷","🎀"];
 const LINE_W=["72%","50%","85%","60%","78%","45%","90%","55%"];
@@ -385,13 +346,12 @@ const DEFAULT={
   ]
 };
 
-// ── State ──────────────────────────────────────────────────────────────────
-let data = JSON.parse(JSON.stringify(DEFAULT));
-let view="shelf", activeNbId=null, activeTag=null, searchQuery="", sidebarOpen=true;
-let modalMode=null, editTarget=null, newNbEmoji="📁", newNbColor=COLORS[0];
+let data=(()=>{try{const s=localStorage.getItem("linkpad_v3");return s?JSON.parse(s):DEFAULT;}catch{return DEFAULT;}})();
+let view="shelf",activeNbId=null,activeTag=null,searchQuery="",sidebarOpen=true;
+let modalMode=null,editTarget=null,newNbEmoji="📁",newNbColor=COLORS[0];
 let deferredInstallPrompt=null;
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+const save=()=>{try{localStorage.setItem("linkpad_v3",JSON.stringify(data));}catch{}};
 const $=id=>document.getElementById(id);
 const linkCount=id=>data.links.filter(l=>l.notebookId===id).length;
 const getNb=id=>data.notebooks.find(n=>n.id===id);
@@ -401,107 +361,61 @@ function getFavicon(url){try{return"https://www.google.com/s2/favicons?sz=32&dom
 function getFiltered(){return data.links.filter(l=>{const inNb=!activeNbId||l.notebookId===activeNbId;const inTag=!activeTag||l.tags.includes(activeTag);const q=searchQuery.toLowerCase();const inQ=!q||[l.title,l.description,l.url].some(f=>f&&f.toLowerCase().includes(q));return inNb&&inTag&&inQ;});}
 function showToast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";t.style.animation="toastIn 0.2s ease";setTimeout(()=>t.style.display="none",2500);}
 
-// ── Firebase sync ──────────────────────────────────────────────────────────
-async function saveToFirebase() {
-  if(!currentUser) return;
-  try {
-    await setDoc(doc(db,"users",currentUser.uid), { data: JSON.stringify(data) });
-  } catch(e) { console.error("Save error:", e); }
+// ── Export / Import ────────────────────────────────────────────────────────
+function exportData(){
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="linkpad-backup-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Exported! 📦");
 }
 
-function startSync(uid) {
-  if(unsubscribe) unsubscribe();
-  unsubscribe = onSnapshot(doc(db,"users",uid), snap => {
-    if(snap.exists()) {
-      try {
-        const remote = JSON.parse(snap.data().data);
-        data = remote;
-        refreshAll();
-      } catch(e) {}
-    }
-  });
+function importData(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const imported=JSON.parse(e.target.result);
+      if(!imported.notebooks||!imported.links) throw new Error("Invalid file");
+      // Merge: add imported links/notebooks that don't already exist
+      const existingNbIds=new Set(data.notebooks.map(n=>n.id));
+      const existingLinkIds=new Set(data.links.map(l=>l.id));
+      const newNbs=imported.notebooks.filter(n=>!existingNbIds.has(n.id));
+      const newLinks=imported.links.filter(l=>!existingLinkIds.has(l.id));
+      data.notebooks=[...data.notebooks,...newNbs];
+      data.links=[...newLinks,...data.links];
+      save(); refreshAll();
+      showToast(`Imported ${newLinks.length} links & ${newNbs.length} notebooks! ✨`);
+    }catch(e){ showToast("Invalid file — please use a Linkpad export"); }
+  };
+  reader.readAsText(file);
 }
-
-const save = () => saveToFirebase();
-
-function refreshAll() {
-  if(view==="shelf") renderShelf();
-  else renderLinks();
-  renderSidebar();
-  if(view==="notebook") updateNbHeader();
-}
-
-// ── Auth ───────────────────────────────────────────────────────────────────
-function showAuthScreen() {
-  $("auth-screen").style.display = "flex";
-  $("app-wrapper").style.display = "none";
-}
-function showApp() {
-  $("auth-screen").style.display = "none";
-  $("app-wrapper").style.display = "flex";
-}
-
-// Handle redirect result on page load — this fires when Google redirects back
-getRedirectResult(auth).then(result => {
-  if(result && result.user) {
-    // User signed in via redirect — onAuthStateChanged will pick it up
-    console.log("Redirect sign-in successful");
-  }
-}).catch(e => {
-  if(e.code !== "auth/no-current-user") console.error("Redirect error:", e.code);
-});
-
-onAuthStateChanged(auth, user => {
-  if(user) {
-    currentUser = user;
-    $("user-avatar").textContent = user.displayName ? user.displayName[0].toUpperCase() : "?";
-    $("user-name").textContent = user.displayName || user.email;
-    showApp();
-    startSync(user.uid);
-    setTimeout(handleShareTarget, 500);
-    setTimeout(checkClipboard, 800);
-  } else {
-    currentUser = null;
-    if(unsubscribe) { unsubscribe(); unsubscribe = null; }
-    // Small delay to allow redirect result to process before showing auth screen
-    setTimeout(() => { if(!currentUser) showAuthScreen(); }, 1000);
-  }
-});
-
-$("btn-google-signin").addEventListener("click", async () => {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
-  } catch(e) { showToast("Sign in failed. Please try again."); }
-});
-
-$("btn-signout").addEventListener("click", async () => {
-  await signOut(auth);
-  showToast("Signed out 👋");
-});
 
 // ── PWA install prompt ─────────────────────────────────────────────────────
-window.addEventListener("beforeinstallprompt", e => {
-  e.preventDefault(); deferredInstallPrompt = e;
-  $("install-banner").style.display = "flex";
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();deferredInstallPrompt=e;$("install-banner").style.display="flex";
 });
-$("btn-install").addEventListener("click", async () => {
-  if(!deferredInstallPrompt) return;
+$("btn-install").addEventListener("click",async()=>{
+  if(!deferredInstallPrompt)return;
   deferredInstallPrompt.prompt();
-  const { outcome } = await deferredInstallPrompt.userChoice;
-  if(outcome==="accepted"){ $("install-banner").style.display="none"; showToast("Linkpad installed! 🎉"); }
-  deferredInstallPrompt = null;
+  const{outcome}=await deferredInstallPrompt.userChoice;
+  if(outcome==="accepted"){$("install-banner").style.display="none";showToast("Linkpad installed! 🎉");}
+  deferredInstallPrompt=null;
 });
-$("btn-install-dismiss").addEventListener("click", ()=>$("install-banner").style.display="none");
-window.addEventListener("appinstalled", ()=>{ $("install-banner").style.display="none"; showToast("Linkpad installed! 🎉"); });
+$("btn-install-dismiss").addEventListener("click",()=>$("install-banner").style.display="none");
+window.addEventListener("appinstalled",()=>{$("install-banner").style.display="none";showToast("Linkpad installed! 🎉");});
 
 // ── Share target ───────────────────────────────────────────────────────────
-function openShareDialog(sharedUrl, sharedTitle) {
-  editTarget=null; modalMode="addLink";
+function openShareDialog(sharedUrl,sharedTitle){
+  editTarget=null;modalMode="addLink";
   const overlay=$("modal-overlay"),mtitle=$("modal-title"),mbody=$("modal-body");
   overlay.classList.add("open");
   mtitle.textContent="Save Shared Link";
-  const url=sharedUrl||"", title=sharedTitle||"";
+  const url=sharedUrl||"",title=sharedTitle||"";
   mbody.innerHTML=`
     <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#0369a1;display:flex;align-items:center;gap:8px;">
       <span>🔗</span> Shared from <strong>${getDomain(url)}</strong></div>
@@ -514,41 +428,41 @@ function openShareDialog(sharedUrl, sharedTitle) {
       ${data.notebooks.map(n=>`<option value="${n.id}">${n.emoji} ${n.name}</option>`).join("")}
       </select></div>
     <div class="modal-btns"><button class="btn-cancel" id="m-cancel">Cancel</button><button class="btn-confirm" id="m-confirm">Save Link</button></div>`;
-  setTimeout(()=>{ const mc=$("m-cancel"),mf=$("m-confirm"); if(mc)mc.addEventListener("click",closeModal); if(mf)mf.addEventListener("click",confirmModal); },50);
+  setTimeout(()=>{const mc=$("m-cancel"),mf=$("m-confirm");if(mc)mc.addEventListener("click",closeModal);if(mf)mf.addEventListener("click",confirmModal);},50);
 }
 
-async function handleShareTarget() {
+async function handleShareTarget(){
   const params=new URLSearchParams(window.location.search);
-  const paramUrl=params.get("url"), paramTitle=params.get("title"), action=params.get("action");
-  if(paramUrl||action) history.replaceState({},"",window.location.pathname);
-  if(paramUrl){ openShareDialog(paramUrl,paramTitle||""); return; }
-  if(action==="add"){ openModal("addLink"); return; }
+  const paramUrl=params.get("url"),paramTitle=params.get("title"),action=params.get("action");
+  if(paramUrl||action)history.replaceState({},"",window.location.pathname);
+  if(paramUrl){openShareDialog(paramUrl,paramTitle||"");return;}
+  if(action==="add"){openModal("addLink");return;}
   if("caches" in window){
     try{
       const cache=await caches.open("linkpad-share");
       const res=await cache.match("pending");
-      if(res){ const d=await res.json(); await cache.delete("pending"); if(Date.now()-d.ts<30000) openShareDialog(d.url,d.title||""); }
+      if(res){const d=await res.json();await cache.delete("pending");if(Date.now()-d.ts<30000)openShareDialog(d.url,d.title||"");}
     }catch(e){}
   }
 }
 
 // ── Clipboard detection ────────────────────────────────────────────────────
-let lastClipboard="", clipboardBannerShown=false;
+let lastClipboard="",clipboardBannerShown=false;
 async function checkClipboard(){
-  if(!("clipboard" in navigator)) return;
+  if(!("clipboard" in navigator))return;
   try{
     const text=await navigator.clipboard.readText();
-    if(!text||text===lastClipboard) return;
-    if(!/^https?:\/\//i.test(text.trim())) return;
+    if(!text||text===lastClipboard)return;
+    if(!/^https?:\/\//i.test(text.trim()))return;
     lastClipboard=text.trim();
-    if(clipboardBannerShown) return;
+    if(clipboardBannerShown)return;
     showClipboardBanner(text.trim());
   }catch(e){}
 }
 function showClipboardBanner(url){
   clipboardBannerShown=true;
   const existing=document.getElementById("clipboard-banner");
-  if(existing) existing.remove();
+  if(existing)existing.remove();
   const banner=document.createElement("div");
   banner.id="clipboard-banner";
   banner.innerHTML=`
@@ -563,17 +477,17 @@ function showClipboardBanner(url){
     <button id="cb-dismiss" style="background:transparent;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;">✕</button>`;
   banner.style.cssText="position:fixed;top:64px;left:12px;right:12px;background:#fff;border:1.5px solid #e8e6e1;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:150;box-shadow:0 4px 20px rgba(0,0,0,0.12);animation:slideDown 0.25s ease;";
   document.body.appendChild(banner);
-  banner.querySelector("#cb-save").addEventListener("click",()=>{ banner.remove(); clipboardBannerShown=false; openShareDialog(url,""); });
-  banner.querySelector("#cb-dismiss").addEventListener("click",()=>{ banner.remove(); clipboardBannerShown=false; });
-  setTimeout(()=>{ if(banner.parentNode){ banner.remove(); clipboardBannerShown=false; } },8000);
+  banner.querySelector("#cb-save").addEventListener("click",()=>{banner.remove();clipboardBannerShown=false;openShareDialog(url,"");});
+  banner.querySelector("#cb-dismiss").addEventListener("click",()=>{banner.remove();clipboardBannerShown=false;});
+  setTimeout(()=>{if(banner.parentNode){banner.remove();clipboardBannerShown=false;}},8000);
 }
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ clipboardBannerShown=false; setTimeout(checkClipboard,400); } });
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){clipboardBannerShown=false;setTimeout(checkClipboard,400);}});
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 function renderSidebar(){
   $("sb-all-count").textContent=data.links.length;
   $("sb-all").className=(view==="notebook"&&activeNbId===null)?"active":"";
-  const list=$("sb-nb-list"); list.innerHTML="";
+  const list=$("sb-nb-list");list.innerHTML="";
   data.notebooks.forEach(nb=>{
     const el=document.createElement("div");
     el.className="sb-nb-item"+(activeNbId===nb.id&&view==="notebook"?" active":"");
@@ -583,14 +497,14 @@ function renderSidebar(){
   });
   const rel=activeNbId?data.links.filter(l=>l.notebookId===activeNbId):data.links;
   const tags=[...new Set(rel.flatMap(l=>l.tags))];
-  const tagList=$("sb-tag-list"); tagList.innerHTML="";
+  const tagList=$("sb-tag-list");tagList.innerHTML="";
   $("sb-tags-label").style.display=tags.length?"":"none";
   tags.forEach(tag=>{
     const count=rel.filter(l=>l.tags.includes(tag)).length;
     const el=document.createElement("div");
     el.className="sb-tag-item"+(activeTag===tag?" active":"");
     el.innerHTML=`<span>#${tag}</span><span class="sb-tag-count">${count}</span>`;
-    el.addEventListener("click",()=>{ activeTag=activeTag===tag?null:tag; if(view==="notebook")renderLinks(); renderSidebar(); });
+    el.addEventListener("click",()=>{activeTag=activeTag===tag?null:tag;if(view==="notebook")renderLinks();renderSidebar();});
     tagList.appendChild(el);
   });
 }
@@ -598,10 +512,10 @@ function renderSidebar(){
 // ── Shelf ──────────────────────────────────────────────────────────────────
 function renderShelf(){
   $("shelf-meta").textContent=data.notebooks.length+" notebook"+(data.notebooks.length!==1?"s":"")+" · "+data.links.length+" links saved";
-  const grid=$("notebooks-grid"); grid.innerHTML="";
+  const grid=$("notebooks-grid");grid.innerHTML="";
   data.notebooks.forEach((nb,i)=>{
-    const count=linkCount(nb.id), lines=Array.from({length:Math.min(Math.max(count,2),8)});
-    const card=document.createElement("div"); card.className="nb-card"; card.style.animationDelay=(i*0.065)+"s";
+    const count=linkCount(nb.id),lines=Array.from({length:Math.min(Math.max(count,2),8)});
+    const card=document.createElement("div");card.className="nb-card";card.style.animationDelay=(i*0.065)+"s";
     card.innerHTML=`
       <div class="nb-card-shadow"></div>
       <div class="nb-card-body" style="box-shadow:0 2px 10px rgba(0,0,0,0.05),-3px 0 0 ${nb.color}77;">
@@ -617,15 +531,15 @@ function renderShelf(){
         </div>
         <div class="nb-card-bottom"><div class="nb-card-name">${nb.name}</div><div class="nb-card-count">${count} ${count===1?"link":"links"}</div></div>
       </div>`;
-    const body=card.querySelector(".nb-card-body"), shadow=card.querySelector(".nb-card-shadow");
-    card.addEventListener("mouseenter",()=>{ body.style.transform="translateY(-7px) rotate(-0.4deg)"; body.style.boxShadow=`0 16px 40px rgba(0,0,0,0.12),-4px 0 0 ${nb.color}`; shadow.style.transform="scaleX(0.86) translateY(4px)"; });
-    card.addEventListener("mouseleave",()=>{ body.style.transform=""; body.style.boxShadow=`0 2px 10px rgba(0,0,0,0.05),-3px 0 0 ${nb.color}77`; shadow.style.transform=""; });
-    card.addEventListener("click",e=>{ if(e.target.classList.contains("nb-del-btn")||e.target.classList.contains("nb-edit-btn"))return; openNotebook(nb.id); });
-    card.querySelector(".nb-del-btn").addEventListener("click",e=>{ e.stopPropagation(); deleteNotebook(nb.id); });
-    card.querySelector(".nb-edit-btn").addEventListener("click",e=>{ e.stopPropagation(); openEditNotebook(nb); });
+    const body=card.querySelector(".nb-card-body"),shadow=card.querySelector(".nb-card-shadow");
+    card.addEventListener("mouseenter",()=>{body.style.transform="translateY(-7px) rotate(-0.4deg)";body.style.boxShadow=`0 16px 40px rgba(0,0,0,0.12),-4px 0 0 ${nb.color}`;shadow.style.transform="scaleX(0.86) translateY(4px)";});
+    card.addEventListener("mouseleave",()=>{body.style.transform="";body.style.boxShadow=`0 2px 10px rgba(0,0,0,0.05),-3px 0 0 ${nb.color}77`;shadow.style.transform="";});
+    card.addEventListener("click",e=>{if(e.target.classList.contains("nb-del-btn")||e.target.classList.contains("nb-edit-btn"))return;openNotebook(nb.id);});
+    card.querySelector(".nb-del-btn").addEventListener("click",e=>{e.stopPropagation();deleteNotebook(nb.id);});
+    card.querySelector(".nb-edit-btn").addEventListener("click",e=>{e.stopPropagation();openEditNotebook(nb);});
     grid.appendChild(card);
   });
-  const add=document.createElement("div"); add.className="add-nb-card"; add.style.animationDelay=(data.notebooks.length*0.065)+"s";
+  const add=document.createElement("div");add.className="add-nb-card";add.style.animationDelay=(data.notebooks.length*0.065)+"s";
   add.innerHTML=`<span class="plus">+</span><span class="label">New Notebook</span>`;
   add.addEventListener("click",()=>openModal("addNotebook"));
   grid.appendChild(add);
@@ -633,18 +547,18 @@ function renderShelf(){
 
 // ── Links ──────────────────────────────────────────────────────────────────
 function renderLinks(){
-  const filtered=getFiltered(), grid=$("links-grid"), empty=$("empty-state"), fi=$("filter-info");
+  const filtered=getFiltered(),grid=$("links-grid"),empty=$("empty-state"),fi=$("filter-info");
   if(searchQuery||activeTag){
     fi.style.display="block";
     fi.innerHTML=`${filtered.length} result${filtered.length!==1?"s":""}${activeTag?` · #${activeTag}`:""}${searchQuery?` · "${searchQuery}"`:""}  <span class="clear-btn">Clear</span>`;
-    fi.querySelector(".clear-btn").addEventListener("click",()=>{ searchQuery=""; activeTag=null; $("search-input").value=""; renderLinks(); renderSidebar(); });
-  } else fi.style.display="none";
+    fi.querySelector(".clear-btn").addEventListener("click",()=>{searchQuery="";activeTag=null;$("search-input").value="";renderLinks();renderSidebar();});
+  }else fi.style.display="none";
   grid.innerHTML="";
-  if(filtered.length===0){ empty.style.display="block"; grid.style.display="none"; }
+  if(filtered.length===0){empty.style.display="block";grid.style.display="none";}
   else{
-    empty.style.display="none"; grid.style.display="grid";
+    empty.style.display="none";grid.style.display="grid";
     filtered.forEach(link=>{
-      const card=document.createElement("div"); card.className="link-card";
+      const card=document.createElement("div");card.className="link-card";
       card.innerHTML=`
         <button class="lc-del">✕</button>
         <div class="lc-top">
@@ -661,16 +575,18 @@ function renderLinks(){
         </div>
         <button class="lc-edit">✏️</button>`;
       card.querySelector(".lc-del").addEventListener("click",()=>deleteLink(link.id));
-      card.querySelector(".lc-edit").addEventListener("click",()=>{ editTarget={...link,tags:link.tags.join(", ")}; openModal("editLink"); });
-      card.querySelectorAll(".tag-pill").forEach(p=>p.addEventListener("click",()=>{ activeTag=activeTag===p.dataset.tag?null:p.dataset.tag; renderLinks(); renderSidebar(); }));
+      card.querySelector(".lc-edit").addEventListener("click",()=>{editTarget={...link,tags:link.tags.join(", ")};openModal("editLink");});
+      card.querySelectorAll(".tag-pill").forEach(p=>p.addEventListener("click",()=>{activeTag=activeTag===p.dataset.tag?null:p.dataset.tag;renderLinks();renderSidebar();}));
       grid.appendChild(card);
     });
   }
 }
 
+function refreshAll(){if(view==="shelf")renderShelf();else renderLinks();renderSidebar();if(view==="notebook")updateNbHeader();}
+
 // ── View ───────────────────────────────────────────────────────────────────
 function setView(v){
-  view=v; const s=v==="shelf";
+  view=v;const s=v==="shelf";
   $("shelf").style.display=s?"block":"none";
   $("notebook-view").style.display=s?"none":"flex";
   $("logo").style.display=s?"":"none";
@@ -679,21 +595,21 @@ function setView(v){
   $("btn-add-link").style.display=window.innerWidth<=600?(s?"none":""):"";
   $("btn-new-notebook").style.display=s?"":"none";
 }
-function openNotebook(nbId){ activeNbId=nbId; activeTag=null; searchQuery=""; $("search-input").value=""; setView("notebook"); updateNbHeader(); renderLinks(); renderSidebar(); }
+function openNotebook(nbId){activeNbId=nbId;activeTag=null;searchQuery="";$("search-input").value="";setView("notebook");updateNbHeader();renderLinks();renderSidebar();}
 function updateNbHeader(){
-  if(activeNbId){ const nb=getNb(activeNbId); if(nb){ $("nb-header-emoji").textContent=nb.emoji; $("nb-header-emoji").style.background=nb.color+"20"; $("nb-header-name").textContent=nb.name; $("nb-header-count").textContent=linkCount(nb.id); } }
-  else{ $("nb-header-emoji").textContent="🗂️"; $("nb-header-emoji").style.background="#f0ede8"; $("nb-header-name").textContent="All Links"; $("nb-header-count").textContent=data.links.length; }
+  if(activeNbId){const nb=getNb(activeNbId);if(nb){$("nb-header-emoji").textContent=nb.emoji;$("nb-header-emoji").style.background=nb.color+"20";$("nb-header-name").textContent=nb.name;$("nb-header-count").textContent=linkCount(nb.id);}}
+  else{$("nb-header-emoji").textContent="🗂️";$("nb-header-emoji").style.background="#f0ede8";$("nb-header-name").textContent="All Links";$("nb-header-count").textContent=data.links.length;}
 }
-function goHome(){ setView("shelf"); activeNbId=null; activeTag=null; searchQuery=""; $("search-input").value=""; renderShelf(); renderSidebar(); }
-function toggleSidebar(){ sidebarOpen=!sidebarOpen; $("sidebar").classList.toggle("collapsed",!sidebarOpen); }
+function goHome(){setView("shelf");activeNbId=null;activeTag=null;searchQuery="";$("search-input").value="";renderShelf();renderSidebar();}
+function toggleSidebar(){sidebarOpen=!sidebarOpen;$("sidebar").classList.toggle("collapsed",!sidebarOpen);}
 
 // ── Delete ─────────────────────────────────────────────────────────────────
-function deleteLink(id){ data.links=data.links.filter(l=>l.id!==id); save(); renderLinks(); renderSidebar(); updateNbHeader(); showToast("Link removed"); }
-function deleteNotebook(id){ data.notebooks=data.notebooks.filter(n=>n.id!==id); data.links=data.links.filter(l=>l.notebookId!==id); save(); renderShelf(); renderSidebar(); showToast("Notebook deleted"); }
+function deleteLink(id){data.links=data.links.filter(l=>l.id!==id);save();renderLinks();renderSidebar();updateNbHeader();showToast("Link removed");}
+function deleteNotebook(id){data.notebooks=data.notebooks.filter(n=>n.id!==id);data.links=data.links.filter(l=>l.notebookId!==id);save();renderShelf();renderSidebar();showToast("Notebook deleted");}
 
 // ── Modal ──────────────────────────────────────────────────────────────────
 function openEditNotebook(nb){
-  editTarget={...nb}; newNbEmoji=nb.emoji; newNbColor=nb.color; modalMode="editNotebook";
+  editTarget={...nb};newNbEmoji=nb.emoji;newNbColor=nb.color;modalMode="editNotebook";
   const overlay=$("modal-overlay"),title=$("modal-title"),body=$("modal-body");
   overlay.classList.add("open");
   title.textContent="Edit Notebook";
@@ -706,7 +622,6 @@ function openEditNotebook(nb){
   $("m-cancel").addEventListener("click",closeModal);
   $("m-confirm").addEventListener("click",confirmModal);
 }
-
 function openModal(mode){
   modalMode=mode;
   const overlay=$("modal-overlay"),title=$("modal-title"),body=$("modal-body");
@@ -724,8 +639,8 @@ function openModal(mode){
         ${data.notebooks.map(n=>`<option value="${n.id}"${lk.notebookId===n.id?" selected":""}>${n.emoji} ${n.name}</option>`).join("")}
         </select></div>
       <div class="modal-btns"><button class="btn-cancel" id="m-cancel">Cancel</button><button class="btn-confirm" id="m-confirm">${mode==="addLink"?"Save Link":"Save Changes"}</button></div>`;
-  } else {
-    newNbEmoji="📁"; newNbColor=COLORS[0];
+  }else{
+    newNbEmoji="📁";newNbColor=COLORS[0];
     title.textContent="New Notebook";
     body.innerHTML=`
       ${fld("Name","nb-name","","My Notebook")}
@@ -737,58 +652,59 @@ function openModal(mode){
   $("m-cancel").addEventListener("click",closeModal);
   $("m-confirm").addEventListener("click",confirmModal);
 }
-
-function fld(label,id,val,ph){ return`<div class="field"><label>${label}</label><input id="${id}" value="${(val||"").replace(/"/g,"&quot;")}" placeholder="${ph}"/></div>`; }
+function fld(label,id,val,ph){return`<div class="field"><label>${label}</label><input id="${id}" value="${(val||"").replace(/"/g,"&quot;")}" placeholder="${ph}"/></div>`;}
 function renderPickers(){
   const ep=$("emoji-picker");
-  if(ep){ ep.innerHTML=EMOJIS.map(e=>`<span class="ep-em${newNbEmoji===e?" sel":""}" data-e="${e}">${e}</span>`).join(""); ep.querySelectorAll(".ep-em").forEach(el=>el.addEventListener("click",()=>{ newNbEmoji=el.dataset.e; renderPickers(); })); }
+  if(ep){ep.innerHTML=EMOJIS.map(e=>`<span class="ep-em${newNbEmoji===e?" sel":""}" data-e="${e}">${e}</span>`).join("");ep.querySelectorAll(".ep-em").forEach(el=>el.addEventListener("click",()=>{newNbEmoji=el.dataset.e;renderPickers();}));}
   const cp=$("color-picker");
-  if(cp){ cp.innerHTML=COLORS.map(c=>`<div class="cp-c${newNbColor===c?" sel":""}" data-c="${c}" style="background:${c};border-color:${newNbColor===c?"#1a1a1a":"transparent"};${newNbColor===c?"outline:2px solid #fff;outline-offset:-4px;":""}"></div>`).join(""); cp.querySelectorAll(".cp-c").forEach(el=>el.addEventListener("click",()=>{ newNbColor=el.dataset.c; renderPickers(); })); }
+  if(cp){cp.innerHTML=COLORS.map(c=>`<div class="cp-c${newNbColor===c?" sel":""}" data-c="${c}" style="background:${c};border-color:${newNbColor===c?"#1a1a1a":"transparent"};${newNbColor===c?"outline:2px solid #fff;outline-offset:-4px;":""}"></div>`).join("");cp.querySelectorAll(".cp-c").forEach(el=>el.addEventListener("click",()=>{newNbColor=el.dataset.c;renderPickers();}));}
 }
-function closeModal(){ $("modal-overlay").classList.remove("open"); editTarget=null; modalMode=null; }
+function closeModal(){$("modal-overlay").classList.remove("open");editTarget=null;modalMode=null;}
 function confirmModal(){
   if(modalMode==="addLink"||modalMode==="editLink"){
-    const url=$("lk-url").value.trim(), ttl=$("lk-title").value.trim();
-    if(!url||!ttl) return;
+    const url=$("lk-url").value.trim(),ttl=$("lk-title").value.trim();
+    if(!url||!ttl)return;
     const tags=$("lk-tags").value.split(",").map(t=>t.trim()).filter(Boolean);
     const notebookId=$("lk-nb").value||activeNbId||data.notebooks[0]?.id||"";
     const desc=$("lk-desc").value.trim();
-    if(modalMode==="addLink"){ data.links.unshift({id:"l"+Date.now(),notebookId,url,title:ttl,description:desc,tags,createdAt:Date.now()}); showToast("Link saved! 🔖"); }
-    else{ data.links=data.links.map(l=>l.id===editTarget.id?{...editTarget,url,title:ttl,description:desc,notebookId,tags}:l); showToast("Link updated ✨"); }
-    save(); closeModal();
-    if(view==="notebook"){ renderLinks(); renderSidebar(); updateNbHeader(); }
-    else{ renderShelf(); renderSidebar(); }
-  } else if(modalMode==="editNotebook"){
-    const name=$("nb-name").value.trim(); if(!name) return;
+    if(modalMode==="addLink"){data.links.unshift({id:"l"+Date.now(),notebookId,url,title:ttl,description:desc,tags,createdAt:Date.now()});showToast("Link saved! 🔖");}
+    else{data.links=data.links.map(l=>l.id===editTarget.id?{...editTarget,url,title:ttl,description:desc,notebookId,tags}:l);showToast("Link updated ✨");}
+    save();closeModal();
+    if(view==="notebook"){renderLinks();renderSidebar();updateNbHeader();}
+    else{renderShelf();renderSidebar();}
+  }else if(modalMode==="editNotebook"){
+    const name=$("nb-name").value.trim();if(!name)return;
     data.notebooks=data.notebooks.map(n=>n.id===editTarget.id?{...n,name,emoji:newNbEmoji,color:newNbColor}:n);
-    if(activeNbId===editTarget.id) updateNbHeader();
-    save(); closeModal(); renderShelf(); renderSidebar(); showToast("Notebook updated ✨");
-  } else {
-    const name=$("nb-name").value.trim(); if(!name) return;
+    if(activeNbId===editTarget.id)updateNbHeader();
+    save();closeModal();renderShelf();renderSidebar();showToast("Notebook updated ✨");
+  }else{
+    const name=$("nb-name").value.trim();if(!name)return;
     data.notebooks.push({id:"nb"+Date.now(),name,emoji:newNbEmoji,color:newNbColor});
-    save(); closeModal(); renderShelf(); renderSidebar(); showToast(`"${name}" created 📒`);
+    save();closeModal();renderShelf();renderSidebar();showToast(`"${name}" created 📒`);
   }
 }
 
 // ── Events ─────────────────────────────────────────────────────────────────
-$("toggle-btn").addEventListener("click",()=>{ if(window.innerWidth<=600){ $("sidebar").classList.contains("mobile-open")?($("sidebar").classList.remove("mobile-open"),$("sidebar-overlay").classList.remove("open")):($("sidebar").classList.add("mobile-open"),$("sidebar-overlay").classList.add("open")); }else{ toggleSidebar(); } });
-$("sidebar-overlay").addEventListener("click",()=>{ $("sidebar").classList.remove("mobile-open"); $("sidebar-overlay").classList.remove("open"); });
-$("mob-btn-home").addEventListener("click",()=>{ goHome(); $("sidebar").classList.remove("mobile-open"); $("sidebar-overlay").classList.remove("open"); });
-$("mob-btn-sidebar").addEventListener("click",()=>{ $("sidebar").classList.contains("mobile-open")?($("sidebar").classList.remove("mobile-open"),$("sidebar-overlay").classList.remove("open")):($("sidebar").classList.add("mobile-open"),$("sidebar-overlay").classList.add("open")); });
+$("toggle-btn").addEventListener("click",()=>{if(window.innerWidth<=600){$("sidebar").classList.contains("mobile-open")?($("sidebar").classList.remove("mobile-open"),$("sidebar-overlay").classList.remove("open")):($("sidebar").classList.add("mobile-open"),$("sidebar-overlay").classList.add("open"));}else{toggleSidebar();}});
+$("sidebar-overlay").addEventListener("click",()=>{$("sidebar").classList.remove("mobile-open");$("sidebar-overlay").classList.remove("open");});
+$("mob-btn-home").addEventListener("click",()=>{goHome();$("sidebar").classList.remove("mobile-open");$("sidebar-overlay").classList.remove("open");});
+$("mob-btn-sidebar").addEventListener("click",()=>{$("sidebar").classList.contains("mobile-open")?($("sidebar").classList.remove("mobile-open"),$("sidebar-overlay").classList.remove("open")):($("sidebar").classList.add("mobile-open"),$("sidebar-overlay").classList.add("open"));});
 $("mob-btn-add").addEventListener("click",()=>openModal("addLink"));
 $("mob-btn-new-nb").addEventListener("click",()=>openModal("addNotebook"));
-$("mob-btn-search-toggle").addEventListener("click",()=>{ if(view!=="notebook"){ openNotebook(activeNbId); return; } const s=$("search-input"); const hidden=s.style.display==="none"||s.style.display===""; s.style.display=hidden?"block":"none"; if(hidden)s.focus(); });
+$("mob-btn-search-toggle").addEventListener("click",()=>{if(view!=="notebook"){openNotebook(activeNbId);return;}const s=$("search-input");const hidden=s.style.display==="none"||s.style.display==="";s.style.display=hidden?"block":"none";if(hidden)s.focus();});
 $("logo").addEventListener("click",goHome);
 $("nb-header").addEventListener("click",goHome);
 $("btn-new-notebook").addEventListener("click",()=>openModal("addNotebook"));
 $("btn-add-link").addEventListener("click",()=>openModal("addLink"));
 $("sb-add-nb").addEventListener("click",()=>openModal("addNotebook"));
-$("sb-all").addEventListener("click",()=>{ activeNbId=null; activeTag=null; openNotebook(null); });
-$("search-input").addEventListener("input",e=>{ searchQuery=e.target.value; renderLinks(); renderSidebar(); });
-$("modal-overlay").addEventListener("click",e=>{ if(e.target===$("modal-overlay")) closeModal(); });
-$("btn-bookmarklet").addEventListener("click",()=>{ buildBookmarklet(); $("bm-modal").classList.add("open"); });
+$("sb-all").addEventListener("click",()=>{activeNbId=null;activeTag=null;openNotebook(null);});
+$("search-input").addEventListener("input",e=>{searchQuery=e.target.value;renderLinks();renderSidebar();});
+$("modal-overlay").addEventListener("click",e=>{if(e.target===$("modal-overlay"))closeModal();});
+$("btn-bookmarklet").addEventListener("click",()=>{buildBookmarklet();$("bm-modal").classList.add("open");});
 $("bm-close").addEventListener("click",()=>$("bm-modal").classList.remove("open"));
-$("bm-modal").addEventListener("click",e=>{ if(e.target===$("bm-modal")) $("bm-modal").classList.remove("open"); });
+$("bm-modal").addEventListener("click",e=>{if(e.target===$("bm-modal"))$("bm-modal").classList.remove("open");});
+$("btn-export").addEventListener("click",exportData);
+$("import-file").addEventListener("change",e=>importData(e.target.files[0]));
 
 // ── Bookmarklet ────────────────────────────────────────────────────────────
 function buildBookmarklet(){
@@ -799,17 +715,15 @@ function buildBookmarklet(){
 
 // ── Service Worker ─────────────────────────────────────────────────────────
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("sw.js").then(reg=>reg.update()).catch(()=>{});
-  });
-  navigator.serviceWorker.addEventListener("message",e=>{ if(e.data&&e.data.type==="SHARE_TARGET") openShareDialog(e.data.url,e.data.title); });
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>reg.update()).catch(()=>{});});
+  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.type==="SHARE_TARGET")openShareDialog(e.data.url,e.data.title);});
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 setView("shelf");
 renderShelf();
 renderSidebar();
+window.addEventListener("load",()=>{setTimeout(handleShareTarget,500);setTimeout(checkClipboard,800);});
 </script>
-</div><!-- /app-wrapper -->
 </body>
 </html>
