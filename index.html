@@ -69,6 +69,7 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
 
 /* ── Content ── */
 #content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+@media(max-width:600px){#content{overflow:visible;}#body{overflow:visible;}}
 
 /* ── Shelf ── */
 #shelf{padding:36px 32px;overflow-y:auto;flex:1;animation:pageIn 0.3s ease;}
@@ -76,6 +77,8 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
 .shelf-header p{font-size:13px;color:#aaa;margin-bottom:30px;}
 #notebooks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:20px;}
 .nb-card{position:relative;cursor:pointer;animation:cardReveal 0.4s ease both;}
+.nb-card.dragging{opacity:0.4;transform:scale(0.97);}
+.nb-card.drag-over{transform:translateY(-4px);}
 .nb-card-shadow{position:absolute;bottom:-5px;left:8px;right:8px;height:10px;background:rgba(0,0,0,0.09);border-radius:50%;filter:blur(5px);transition:transform 0.25s ease;}
 .nb-card:hover .nb-card-shadow{transform:scaleX(0.86) translateY(4px);}
 .nb-card-body{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e8e6e1;transition:transform 0.25s ease,box-shadow 0.25s ease;position:relative;}
@@ -537,6 +540,33 @@ function renderShelf(){
     card.addEventListener("click",e=>{if(e.target.classList.contains("nb-del-btn")||e.target.classList.contains("nb-edit-btn"))return;openNotebook(nb.id);});
     card.querySelector(".nb-del-btn").addEventListener("click",e=>{e.stopPropagation();deleteNotebook(nb.id);});
     card.querySelector(".nb-edit-btn").addEventListener("click",e=>{e.stopPropagation();openEditNotebook(nb);});
+
+    // Drag to reorder
+    card.setAttribute("draggable","true");
+    card.dataset.nbId = nb.id;
+    card.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",nb.id);card.classList.add("dragging");});
+    card.addEventListener("dragend",()=>card.classList.remove("dragging"));
+    card.addEventListener("dragover",e=>{e.preventDefault();card.classList.add("drag-over");});
+    card.addEventListener("dragleave",()=>card.classList.remove("drag-over"));
+    card.addEventListener("drop",e=>{
+      e.preventDefault();card.classList.remove("drag-over");
+      const fromId=e.dataTransfer.getData("text/plain");
+      const toId=nb.id;
+      if(fromId===toId)return;
+      const fromIdx=data.notebooks.findIndex(n=>n.id===fromId);
+      const toIdx=data.notebooks.findIndex(n=>n.id===toId);
+      const reordered=[...data.notebooks];
+      const [moved]=reordered.splice(fromIdx,1);
+      reordered.splice(toIdx,0,moved);
+      data.notebooks=reordered;
+      save();renderShelf();renderSidebar();
+    });
+
+    // Long press to reorder on mobile
+    let pressTimer;
+    card.addEventListener("touchstart",()=>{pressTimer=setTimeout(()=>{card.setAttribute("draggable","true");showToast("Drag to reorder 📋");},500);},{passive:true});
+    card.addEventListener("touchend",()=>clearTimeout(pressTimer),{passive:true});
+
     grid.appendChild(card);
   });
   const add=document.createElement("div");add.className="add-nb-card";add.style.animationDelay=(data.notebooks.length*0.065)+"s";
