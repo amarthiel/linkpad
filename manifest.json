@@ -1,0 +1,42 @@
+{
+  "name": "Linkpad",
+  "short_name": "Linkpad",
+  "description": "Your personal link saver, organised into notebooks.",
+  "start_url": "/linkpad/",
+  "scope": "/linkpad/",
+  "display": "standalone",
+  "background_color": "#f8f7f4",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/linkpad/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "url": "url"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "Save a Link",
+      "short_name": "Save",
+      "description": "Quickly save a new link",
+      "url": "/linkpad/?action=add",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

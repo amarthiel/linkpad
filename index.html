@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Linkpad"/>
+<meta name="theme-color" content="#1a1a1a"/>
+<title>Linkpad</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:100vh;overflow:hidden;height:100vh;}
+#app-wrapper{display:flex;flex-direction:column;height:100vh;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:#d5d3ce;border-radius:99px;}
+
+/* ── Header ── */
+#header{background:#fff;border-bottom:1px solid #e8e6e1;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:50;flex-shrink:0;}
+#header-left{display:flex;align-items:center;gap:8px;}
+#header-right{display:flex;gap:8px;align-items:center;}
+#toggle-btn{background:transparent;border:none;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#888;font-size:15px;transition:background 0.15s,color 0.15s;flex-shrink:0;}
+#toggle-btn:hover{background:#f0ede8;color:#1a1a1a;}
+#logo{font-family:'DM Serif Display',serif;font-size:22px;color:#1a1a1a;letter-spacing:-0.3px;cursor:pointer;transition:opacity 0.15s;}
+#logo:hover{opacity:0.7;}
+#nb-header{display:none;align-items:center;gap:8px;cursor:pointer;}
+#nb-header-emoji{font-size:17px;padding:3px 5px;border-radius:7px;}
+#nb-header-name{font-family:'DM Serif Display',serif;font-size:20px;color:#1a1a1a;}
+#nb-header-count{background:#f0ede8;color:#aaa;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;}
+#search-input{background:#f8f7f4;border:1.5px solid #e8e6e1;border-radius:10px;padding:7px 12px;font-size:13px;color:#1a1a1a;font-family:'DM Sans',sans-serif;width:190px;outline:none;transition:border-color 0.15s;display:none;}
+#search-input:focus{border-color:#1a1a1a;}
+.btn-primary{background:#1a1a1a;color:#fff;border:none;border-radius:10px;padding:7px 15px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s,transform 0.1s;white-space:nowrap;}
+.btn-primary:hover{background:#333;transform:translateY(-1px);}
+#btn-add-link{}
+#btn-bookmarklet{background:transparent;border:1.5px solid #e8e6e1;border-radius:10px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#888;transition:border-color 0.15s,color 0.15s,background 0.15s;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+#btn-bookmarklet:hover{border-color:#1a1a1a;color:#1a1a1a;background:#faf9f7;}
+
+/* ── Body ── */
+#body{display:flex;flex:1;overflow:hidden;}
+
+/* ── Sidebar ── */
+#sidebar{width:220px;background:#fff;border-right:1px solid #e8e6e1;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width 0.25s ease,opacity 0.2s ease;}
+#sidebar.collapsed{width:0;opacity:0;pointer-events:none;}
+#sidebar-inner{width:220px;display:flex;flex-direction:column;height:100%;overflow-y:auto;padding:14px 0 20px;}
+.sidebar-section-label{font-size:10px;font-weight:700;color:#bbb;letter-spacing:0.09em;text-transform:uppercase;padding:0 16px;margin-bottom:6px;margin-top:14px;}
+.sidebar-section-label:first-child{margin-top:0;}
+.sb-nb-item{display:flex;align-items:center;gap:9px;padding:8px 14px;margin:0 6px;border-radius:9px;cursor:pointer;transition:background 0.13s,transform 0.1s;}
+.sb-nb-item:hover{background:#f4f2ee;transform:translateX(2px);}
+.sb-nb-item.active{background:#edeae5;}
+.sb-nb-emoji{font-size:14px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;flex-shrink:0;}
+.sb-nb-name{font-size:13px;font-weight:500;color:#1a1a1a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-nb-count{font-size:11px;color:#bbb;font-weight:600;}
+#sb-all{display:flex;align-items:center;gap:9px;padding:8px 14px;margin:0 6px;border-radius:9px;cursor:pointer;transition:background 0.13s;}
+#sb-all:hover{background:#f4f2ee;}
+#sb-all.active{background:#edeae5;}
+.sb-tag-item{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;margin:0 6px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;color:#666;transition:background 0.13s,color 0.13s;}
+.sb-tag-item:hover{background:#f4f2ee;}
+.sb-tag-item.active{background:#1a1a1a;color:#fff;}
+.sb-tag-item.active .sb-tag-count{color:#888;}
+.sb-tag-count{font-size:10px;color:#ccc;}
+#sb-add-nb{margin:10px 12px 0;background:transparent;border:1.5px dashed #d5d3ce;border-radius:10px;padding:7px;font-size:12px;color:#bbb;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:border-color 0.15s,color 0.15s;}
+#sb-add-nb:hover{border-color:#1a1a1a;color:#1a1a1a;}
+
+/* ── Content ── */
+#content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── Shelf ── */
+#shelf{padding:36px 32px;overflow-y:auto;flex:1;animation:pageIn 0.3s ease;}
+.shelf-header h1{font-family:'DM Serif Display',serif;font-size:30px;color:#1a1a1a;margin-bottom:4px;}
+.shelf-header p{font-size:13px;color:#aaa;margin-bottom:30px;}
+#notebooks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:20px;}
+.nb-card{position:relative;cursor:pointer;animation:cardReveal 0.4s ease both;}
+.nb-card-shadow{position:absolute;bottom:-5px;left:8px;right:8px;height:10px;background:rgba(0,0,0,0.09);border-radius:50%;filter:blur(5px);transition:transform 0.25s ease;}
+.nb-card:hover .nb-card-shadow{transform:scaleX(0.86) translateY(4px);}
+.nb-card-body{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e8e6e1;transition:transform 0.25s ease,box-shadow 0.25s ease;position:relative;}
+.nb-card:hover .nb-card-body{transform:translateY(-7px) rotate(-0.4deg);}
+.nb-spine{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:14px 0 0 14px;}
+.nb-card-top{padding:16px 14px 12px 18px;min-height:108px;display:flex;flex-direction:column;justify-content:space-between;}
+.nb-card-top-row{display:flex;justify-content:space-between;align-items:flex-start;}
+.nb-card-emoji{font-size:28px;}
+.nb-del-btn,.nb-edit-btn{background:transparent;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:2px 5px;border-radius:5px;opacity:0;transition:opacity 0.18s,background 0.13s;}
+.nb-card:hover .nb-del-btn,.nb-card:hover .nb-edit-btn{opacity:1;}
+.nb-del-btn:hover,.nb-edit-btn:hover{background:#f0ede8;}
+.nb-lines{display:flex;flex-direction:column;gap:4px;margin-top:10px;}
+.nb-line{height:2px;border-radius:99px;}
+.nb-card-bottom{padding:10px 14px 13px 18px;border-top:1px solid #f0ede8;}
+.nb-card-name{font-family:'DM Serif Display',serif;font-size:13px;color:#1a1a1a;line-height:1.3;margin-bottom:2px;}
+.nb-card-count{font-size:11px;color:#aaa;font-weight:600;}
+.add-nb-card{border-radius:14px;border:2px dashed #d5d3ce;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:178px;color:#ccc;cursor:pointer;transition:border-color 0.2s,color 0.2s,background 0.15s;animation:cardReveal 0.4s ease both;}
+.add-nb-card:hover{border-color:#1a1a1a;color:#1a1a1a;background:#faf9f7;}
+.add-nb-card .plus{font-size:24px;margin-bottom:6px;}
+.add-nb-card .label{font-size:12px;font-weight:600;}
+
+/* ── Notebook view ── */
+#notebook-view{display:none;flex:1;flex-direction:column;overflow:hidden;}
+#links-main{flex:1;overflow-y:auto;padding:26px 28px;}
+#filter-info{font-size:13px;color:#aaa;margin-bottom:14px;display:none;}
+#filter-info .clear-btn{margin-left:8px;color:#1a1a1a;cursor:pointer;text-decoration:underline;font-size:12px;}
+#links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:13px;}
+#empty-state{text-align:center;padding:70px 0;display:none;}
+#empty-state .ei{font-size:44px;margin-bottom:10px;}
+#empty-state p{font-family:'DM Serif Display',serif;font-size:17px;color:#ccc;}
+#empty-state small{font-size:13px;color:#bbb;display:block;margin-top:5px;}
+.link-card{background:#fff;border-radius:13px;padding:15px;border:1px solid #e8e6e1;position:relative;transition:box-shadow 0.18s,transform 0.16s;}
+.link-card:hover{box-shadow:0 6px 26px rgba(0,0,0,0.09);transform:translateY(-2px);}
+.lc-del,.lc-edit{position:absolute;border:none;background:transparent;cursor:pointer;color:#ccc;padding:3px 6px;border-radius:6px;font-size:12px;opacity:0;transition:opacity 0.14s,background 0.13s;}
+.link-card:hover .lc-del,.link-card:hover .lc-edit{opacity:1;}
+.lc-del{top:9px;right:9px;}
+.lc-edit{bottom:9px;right:9px;}
+.lc-del:hover,.lc-edit:hover{background:#f0ede8;}
+.lc-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px;}
+.lc-fav{width:30px;height:30px;border-radius:7px;background:#f8f7f4;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.lc-fav img{width:16px;height:16px;}
+.lc-title{font-weight:600;font-size:13px;color:#1a1a1a;text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lc-title:hover{text-decoration:underline;}
+.lc-domain{font-size:11px;color:#bbb;}
+.lc-desc{font-size:12px;color:#777;line-height:1.5;margin-bottom:9px;}
+.lc-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;}
+.lc-tags{display:flex;gap:4px;flex-wrap:wrap;}
+.tag-pill{background:#f0ede8;color:#888;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;cursor:pointer;transition:background 0.13s,color 0.13s;}
+.tag-pill:hover,.tag-pill.active{background:#1a1a1a;color:#fff;}
+.lc-time{font-size:10px;color:#ccc;}
+
+/* ── Install banner (mobile) ── */
+#install-banner{display:none;background:#1a1a1a;color:#fff;padding:10px 16px;font-size:13px;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;}
+#install-banner span{line-height:1.4;}
+#install-banner strong{display:block;font-size:13px;margin-bottom:1px;}
+#install-banner small{font-size:11px;opacity:0.65;}
+#btn-install{background:#fff;color:#1a1a1a;border:none;border-radius:8px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+#btn-install-dismiss{background:transparent;border:none;color:rgba(255,255,255,0.5);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;}
+
+/* ── Bookmarklet modal ── */
+#bm-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.32);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:200;padding:16px;}
+#bm-modal.open{display:flex;animation:fadeIn 0.15s ease;}
+#bm-box{background:#fff;border-radius:18px;padding:26px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.14);animation:slideUp 0.2s ease;}
+#bm-box h2{font-family:'DM Serif Display',serif;font-size:21px;color:#1a1a1a;margin-bottom:6px;}
+.bm-sub{font-size:13px;color:#aaa;margin-bottom:22px;line-height:1.5;}
+.bm-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:18px;}
+.bm-step-num{width:24px;height:24px;background:#1a1a1a;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.bm-step-text{font-size:13px;color:#444;line-height:1.6;}
+.bm-step-text strong{color:#1a1a1a;}
+#bm-drag-btn{display:inline-flex;align-items:center;gap:6px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:grab;text-decoration:none;margin-top:6px;box-shadow:0 3px 12px rgba(0,0,0,0.18);transition:transform 0.15s,box-shadow 0.15s;user-select:none;}
+#bm-drag-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.22);}
+.bm-hint{font-size:11px;color:#bbb;margin-top:6px;}
+.bm-close{margin-top:18px;width:100%;background:#f0ede8;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;color:#666;font-family:'DM Sans',sans-serif;transition:background 0.13s;}
+.bm-close:hover{background:#e6e2dc;}
+
+/* ── General modal ── */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.32);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:200;padding:16px;}
+#modal-overlay.open{display:flex;animation:fadeIn 0.15s ease;}
+#modal-box{background:#fff;border-radius:18px;padding:22px;width:100%;max-width:430px;box-shadow:0 20px 60px rgba(0,0,0,0.14);animation:slideUp 0.2s ease;max-height:92vh;overflow-y:auto;}
+@media(max-width:600px){#modal-overlay{align-items:flex-end;padding:0;}#modal-box{border-radius:18px 18px 0 0;max-height:85vh;padding:20px 18px 32px;}}
+#modal-title{font-family:'DM Serif Display',serif;font-size:21px;color:#1a1a1a;margin-bottom:18px;}
+.field{margin-bottom:13px;}
+.field label{font-size:10px;font-weight:700;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:4px;}
+.field input,.field select{width:100%;background:#f8f7f4;border:1.5px solid #e8e6e1;border-radius:9px;padding:9px 11px;font-size:13px;color:#1a1a1a;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s;}
+.field input:focus,.field select:focus{border-color:#1a1a1a;}
+#emoji-picker{display:flex;flex-wrap:wrap;gap:5px;}
+.ep-em{font-size:19px;padding:5px 6px;border-radius:7px;cursor:pointer;border:2px solid transparent;transition:transform 0.1s,background 0.1s;}
+.ep-em:hover{transform:scale(1.18);background:#ede9e3;}
+.ep-em.sel{background:#f0ede8;border-color:#1a1a1a;}
+#color-picker{display:flex;gap:7px;flex-wrap:wrap;max-width:100%;}
+.cp-c{width:24px;height:24px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform 0.1s;}
+.cp-c:hover{transform:scale(1.15);}
+.cp-c.sel{outline:2px solid #fff;outline-offset:-4px;border-color:#1a1a1a;}
+.modal-btns{display:flex;gap:9px;margin-top:18px;}
+.btn-cancel{flex:1;background:#f0ede8;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;color:#666;font-family:'DM Sans',sans-serif;transition:background 0.13s;}
+.btn-cancel:hover{background:#e6e2dc;}
+.btn-confirm{flex:2;background:#1a1a1a;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.13s,transform 0.1s;}
+.btn-confirm:hover{background:#333;transform:translateY(-1px);}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:99px;font-size:13px;font-weight:500;z-index:300;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,0.18);display:none;}
+
+/* ── Mobile bottom nav ── */
+#mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e8e6e1;padding:8px 16px 20px;z-index:100;flex-shrink:0;align-items:center;justify-content:space-around;}
+.mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;border:none;cursor:pointer;padding:4px 0;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;color:#aaa;transition:color 0.15s;}
+.mob-nav-btn.active{color:#1a1a1a;}
+.mob-nav-icon{font-size:20px;}
+#mob-btn-add{background:#1a1a1a;color:#fff;width:50px;height:50px;border-radius:50%;border:none;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.25);margin-top:-18px;transition:transform 0.15s,background 0.15s;}
+#mob-btn-add:active{transform:scale(0.93);}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:90;}
+#sidebar-overlay.open{display:block;}
+
+/* ── Mobile tweaks ── */
+@media(max-width:600px){
+  #sidebar{position:fixed;top:56px;left:0;bottom:0;z-index:95;transform:translateX(-100%);transition:transform 0.25s ease;width:240px !important;opacity:1 !important;pointer-events:auto !important;}
+  #sidebar.mobile-open{transform:translateX(0);}
+  #toggle-btn{display:flex !important;}
+  #shelf{padding:24px 16px 90px;}
+  #links-main{padding:18px 16px 90px;}
+  #search-input{width:130px;}
+  #btn-bookmarklet{display:none;}
+  #btn-add-link{display:none !important;}
+  #btn-new-notebook{display:none !important;}
+  #notebooks-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;}
+  #mobile-nav{display:flex;}
+}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardReveal{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- Auth screen -->
+<div id="auth-screen" style="display:none;position:fixed;inset:0;background:#f8f7f4;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;">
+  <div style="font-family:'DM Serif Display',serif;font-size:36px;color:#1a1a1a;letter-spacing:-0.5px;">Linkpad</div>
+  <div style="font-size:14px;color:#aaa;margin-bottom:8px;">Your personal link saver</div>
+  <button id="btn-google-signin" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #e8e6e1;border-radius:12px;padding:12px 24px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;color:#1a1a1a;box-shadow:0 2px 10px rgba(0,0,0,0.06);transition:box-shadow 0.15s,transform 0.1s;">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Continue with Google
+  </button>
+</div>
+
+<!-- App wrapper -->
+<div id="app-wrapper" style="display:flex;flex-direction:column;height:100vh;">
+
+<!-- Install banner (shown on mobile before PWA install) -->
+<div id="install-banner">
+  <span><strong>Add Linkpad to your home screen</strong><small>Save links from any app with one tap</small></span>
+  <button id="btn-install">Install</button>
+  <button id="btn-install-dismiss">✕</button>
+</div>
+
+<!-- Header -->
+<div id="header">
+  <div id="header-left">
+    <button id="toggle-btn" title="Toggle sidebar">☰</button>
+    <span id="logo">Linkpad</span>
+    <div id="nb-header">
+      <span id="nb-header-emoji"></span>
+      <span id="nb-header-name"></span>
+      <span id="nb-header-count"></span>
+    </div>
+  </div>
+  <div id="header-right">
+    <button id="btn-bookmarklet">🔖 Bookmarklet</button>
+    <div id="user-info" style="display:flex;align-items:center;gap:8px;margin-left:4px;">
+      <div id="user-avatar" style="width:30px;height:30px;border-radius:50%;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;"></div>
+      <span id="user-name" style="font-size:12px;color:#aaa;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <button id="btn-signout" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:#aaa;cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#aaa';">Sign out</button>
+    </div>
+    <input type="text" id="search-input" placeholder="Search links…"/>
+    <button class="btn-primary" id="btn-add-link">+ Add Link</button>
+    <button class="btn-primary" id="btn-new-notebook">+ New Notebook</button>
+  </div>
+</div>
+
+<!-- Body -->
+<div id="body">
+  <div id="sidebar">
+    <div id="sidebar-inner">
+      <div class="sidebar-section-label">Notebooks</div>
+      <div id="sb-all">
+        <span class="sb-nb-emoji" style="background:#f0ede8;">🗂️</span>
+        <span class="sb-nb-name">All Links</span>
+        <span class="sb-nb-count" id="sb-all-count"></span>
+      </div>
+      <div id="sb-nb-list"></div>
+      <button id="sb-add-nb">+ New Notebook</button>
+      <div class="sidebar-section-label" id="sb-tags-label" style="margin-top:18px;">Tags</div>
+      <div id="sb-tag-list"></div>
+    </div>
+  </div>
+  <div id="content">
+    <div id="shelf">
+      <div class="shelf-header">
+        <h1>Your Notebooks</h1>
+        <p id="shelf-meta"></p>
+      </div>
+      <div id="notebooks-grid"></div>
+    </div>
+    <div id="notebook-view">
+      <div id="links-main">
+        <div id="filter-info"></div>
+        <div id="links-grid"></div>
+        <div id="empty-state">
+          <div class="ei">🔗</div>
+          <p>No links yet</p>
+          <small>Tap "+ Add Link" to save your first one</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar overlay (mobile) -->
+<div id="sidebar-overlay"></div>
+
+<!-- Mobile bottom nav -->
+<div id="mobile-nav">
+  <button class="mob-nav-btn" id="mob-btn-home"><span class="mob-nav-icon">🏠</span><span>Home</span></button>
+  <button class="mob-nav-btn" id="mob-btn-sidebar"><span class="mob-nav-icon">📚</span><span>Notebooks</span></button>
+  <button id="mob-btn-add">+</button>
+  <button class="mob-nav-btn" id="mob-btn-search-toggle"><span class="mob-nav-icon">🔍</span><span>Search</span></button>
+  <button class="mob-nav-btn" id="mob-btn-new-nb"><span class="mob-nav-icon">✏️</span><span>New NB</span></button>
+</div>
+
+<!-- Bookmarklet modal -->
+<div id="bm-modal">
+  <div id="bm-box">
+    <h2>🔖 Save from anywhere</h2>
+    <p class="bm-sub">Add the Linkpad button to your bookmarks bar. One click on any page and the link is pre-filled and ready to save.</p>
+    <div class="bm-step">
+      <div class="bm-step-num">1</div>
+      <div class="bm-step-text"><strong>Show your bookmarks bar</strong><br>Chrome/Edge: <kbd style="background:#f0ede8;padding:1px 5px;border-radius:4px;font-size:11px;">Ctrl+Shift+B</kbd> &nbsp; Safari: View → Show Favourites Bar</div>
+    </div>
+    <div class="bm-step">
+      <div class="bm-step-num">2</div>
+      <div class="bm-step-text"><strong>Drag this button to your bookmarks bar</strong><br>
+        <a id="bm-drag-btn" href="#">🔖 Save to Linkpad</a>
+        <p class="bm-hint">Drag the button above straight into your bookmarks bar.</p>
+      </div>
+    </div>
+    <div class="bm-step">
+      <div class="bm-step-num">3</div>
+      <div class="bm-step-text"><strong>Done!</strong> On any webpage, click <em>"Save to Linkpad"</em> in your bookmarks bar and a save dialog will open automatically.</div>
+    </div>
+    <button class="bm-close" id="bm-close">Got it!</button>
+  </div>
+</div>
+
+<!-- General modal -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div id="modal-title"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+// ── Firebase ───────────────────────────────────────────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCvrG5L654oER0N2oYkuEh_kpX4MJ5gSMg",
+  authDomain: "linkpad-e5242.firebaseapp.com",
+  projectId: "linkpad-e5242",
+  storageBucket: "linkpad-e5242.firebasestorage.app",
+  messagingSenderId: "570478168043",
+  appId: "1:570478168043:web:773f0a394123c2d1447bae"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+let currentUser = null;
+let unsubscribe = null;
+
+// ── Constants ──────────────────────────────────────────────────────────────
+const COLORS=["#f97316","#6366f1","#10b981","#ec4899","#f59e0b","#14b8a6","#8b5cf6","#ef4444","#0ea5e9","#84cc16","#f43f5e","#a855f7","#06b6d4","#d97706","#64748b","#e11d48","#16a34a","#7c3aed","#0284c7","#dc2626"];
+const EMOJIS=["📁","🎨","💻","📖","🎵","✈️","🍕","💡","🔖","⭐","🌿","🔥","🎯","🧠","🎬","🛒","📸","🎮","🏋️","🌍","💼","🎓","🏠","🚀","💰","🎭","📰","🔬","🎸","🌸","🍜","☕","🏖️","🎪","💊","🐾","🎁","🧪","🏆","📊","🛠️","🌙","❤️","🦋","🎲","🧩","🎤","🌊","🍷","🎀"];
+const LINE_W=["72%","50%","85%","60%","78%","45%","90%","55%"];
+const DEFAULT={
+  notebooks:[
+    {id:"nb1",name:"Design Inspiration",emoji:"🎨",color:"#f97316"},
+    {id:"nb2",name:"Dev Resources",emoji:"💻",color:"#6366f1"},
+    {id:"nb3",name:"Reading List",emoji:"📖",color:"#10b981"},
+    {id:"nb4",name:"Travel Ideas",emoji:"✈️",color:"#ec4899"},
+  ],
+  links:[
+    {id:"l1",notebookId:"nb1",url:"https://dribbble.com",title:"Dribbble",description:"Design shots & inspiration",tags:["design","ui"],createdAt:Date.now()-86400000*2},
+    {id:"l2",notebookId:"nb1",url:"https://awwwards.com",title:"Awwwards",description:"Award-winning web design",tags:["design","web"],createdAt:Date.now()-86400000},
+    {id:"l3",notebookId:"nb2",url:"https://github.com",title:"GitHub",description:"Where code lives",tags:["dev","tools"],createdAt:Date.now()-3600000*5},
+    {id:"l4",notebookId:"nb2",url:"https://developer.mozilla.org",title:"MDN Web Docs",description:"The bible for web dev",tags:["dev","docs"],createdAt:Date.now()-3600000*3},
+    {id:"l5",notebookId:"nb3",url:"https://medium.com",title:"Medium",description:"Great articles on everything",tags:["reading","blog"],createdAt:Date.now()-3600000*2},
+    {id:"l6",notebookId:"nb4",url:"https://airbnb.com",title:"Airbnb",description:"Unique stays worldwide",tags:["travel"],createdAt:Date.now()-3600000},
+  ]
+};
+
+// ── State ──────────────────────────────────────────────────────────────────
+let data = JSON.parse(JSON.stringify(DEFAULT));
+let view="shelf", activeNbId=null, activeTag=null, searchQuery="", sidebarOpen=true;
+let modalMode=null, editTarget=null, newNbEmoji="📁", newNbColor=COLORS[0];
+let deferredInstallPrompt=null;
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const linkCount=id=>data.links.filter(l=>l.notebookId===id).length;
+const getNb=id=>data.notebooks.find(n=>n.id===id);
+function timeAgo(ts){const d=Date.now()-ts;if(d<60000)return"just now";if(d<3600000)return Math.floor(d/60000)+"m ago";if(d<86400000)return Math.floor(d/3600000)+"h ago";return Math.floor(d/86400000)+"d ago";}
+function getDomain(url){try{return new URL(url).hostname.replace("www.","");}catch{return url;}}
+function getFavicon(url){try{return"https://www.google.com/s2/favicons?sz=32&domain="+new URL(url).hostname;}catch{return""}}
+function getFiltered(){return data.links.filter(l=>{const inNb=!activeNbId||l.notebookId===activeNbId;const inTag=!activeTag||l.tags.includes(activeTag);const q=searchQuery.toLowerCase();const inQ=!q||[l.title,l.description,l.url].some(f=>f&&f.toLowerCase().includes(q));return inNb&&inTag&&inQ;});}
+function showToast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";t.style.animation="toastIn 0.2s ease";setTimeout(()=>t.style.display="none",2500);}
+
+// ── Firebase sync ──────────────────────────────────────────────────────────
+async function saveToFirebase() {
+  if(!currentUser) return;
+  try {
+    await setDoc(doc(db,"users",currentUser.uid), { data: JSON.stringify(data) });
+  } catch(e) { console.error("Save error:", e); }
+}
+
+function startSync(uid) {
+  if(unsubscribe) unsubscribe();
+  unsubscribe = onSnapshot(doc(db,"users",uid), snap => {
+    if(snap.exists()) {
+      try {
+        const remote = JSON.parse(snap.data().data);
+        data = remote;
+        refreshAll();
+      } catch(e) {}
+    }
+  });
+}
+
+const save = () => saveToFirebase();
+
+function refreshAll() {
+  if(view==="shelf") renderShelf();
+  else renderLinks();
+  renderSidebar();
+  if(view==="notebook") updateNbHeader();
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+function showAuthScreen() {
+  $("auth-screen").style.display = "flex";
+  $("app-wrapper").style.display = "none";
+}
+function showApp() {
+  $("auth-screen").style.display = "none";
+  $("app-wrapper").style.display = "flex";
+}
+
+// Handle redirect result on page load — this fires when Google redirects back
+getRedirectResult(auth).then(result => {
+  if(result && result.user) {
+    // User signed in via redirect — onAuthStateChanged will pick it up
+    console.log("Redirect sign-in successful");
+  }
+}).catch(e => {
+  if(e.code !== "auth/no-current-user") console.error("Redirect error:", e.code);
+});
+
+onAuthStateChanged(auth, user => {
+  if(user) {
+    currentUser = user;
+    $("user-avatar").textContent = user.displayName ? user.displayName[0].toUpperCase() : "?";
+    $("user-name").textContent = user.displayName || user.email;
+    showApp();
+    startSync(user.uid);
+    setTimeout(handleShareTarget, 500);
+    setTimeout(checkClipboard, 800);
+  } else {
+    currentUser = null;
+    if(unsubscribe) { unsubscribe(); unsubscribe = null; }
+    // Small delay to allow redirect result to process before showing auth screen
+    setTimeout(() => { if(!currentUser) showAuthScreen(); }, 1000);
+  }
+});
+
+$("btn-google-signin").addEventListener("click", async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithRedirect(auth, provider);
+  } catch(e) { showToast("Sign in failed. Please try again."); }
+});
+
+$("btn-signout").addEventListener("click", async () => {
+  await signOut(auth);
+  showToast("Signed out 👋");
+});
+
+// ── PWA install prompt ─────────────────────────────────────────────────────
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault(); deferredInstallPrompt = e;
+  $("install-banner").style.display = "flex";
+});
+$("btn-install").addEventListener("click", async () => {
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if(outcome==="accepted"){ $("install-banner").style.display="none"; showToast("Linkpad installed! 🎉"); }
+  deferredInstallPrompt = null;
+});
+$("btn-install-dismiss").addEventListener("click", ()=>$("install-banner").style.display="none");
+window.addEventListener("appinstalled", ()=>{ $("install-banner").style.display="none"; showToast("Linkpad installed! 🎉"); });
+
+// ── Share target ───────────────────────────────────────────────────────────
+function openShareDialog(sharedUrl, sharedTitle) {
+  editTarget=null; modalMode="addLink";
+  const overlay=$("modal-overlay"),mtitle=$("modal-title"),mbody=$("modal-body");
+  overlay.classList.add("open");
+  mtitle.textContent="Save Shared Link";
+  const url=sharedUrl||"", title=sharedTitle||"";
+  mbody.innerHTML=`
+    <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#0369a1;display:flex;align-items:center;gap:8px;">
+      <span>🔗</span> Shared from <strong>${getDomain(url)}</strong></div>
+    ${fld("URL","lk-url",url,"https://...")}
+    ${fld("Title","lk-title",title,"Give it a name")}
+    ${fld("Description","lk-desc","","What's it about? (optional)")}
+    ${fld("Tags","lk-tags","","design, tools, reading")}
+    <div class="field"><label>Notebook</label>
+      <select id="lk-nb"><option value="">— Select notebook —</option>
+      ${data.notebooks.map(n=>`<option value="${n.id}">${n.emoji} ${n.name}</option>`).join("")}
+      </select></div>
+    <div class="modal-btns"><button class="btn-cancel" id="m-cancel">Cancel</button><button class="btn-confirm" id="m-confirm">Save Link</button></div>`;
+  setTimeout(()=>{ const mc=$("m-cancel"),mf=$("m-confirm"); if(mc)mc.addEventListener("click",closeModal); if(mf)mf.addEventListener("click",confirmModal); },50);
+}
+
+async function handleShareTarget() {
+  const params=new URLSearchParams(window.location.search);
+  const paramUrl=params.get("url"), paramTitle=params.get("title"), action=params.get("action");
+  if(paramUrl||action) history.replaceState({},"",window.location.pathname);
+  if(paramUrl){ openShareDialog(paramUrl,paramTitle||""); return; }
+  if(action==="add"){ openModal("addLink"); return; }
+  if("caches" in window){
+    try{
+      const cache=await caches.open("linkpad-share");
+      const res=await cache.match("pending");
+      if(res){ const d=await res.json(); await cache.delete("pending"); if(Date.now()-d.ts<30000) openShareDialog(d.url,d.title||""); }
+    }catch(e){}
+  }
+}
+
+// ── Clipboard detection ────────────────────────────────────────────────────
+let lastClipboard="", clipboardBannerShown=false;
+async function checkClipboard(){
+  if(!("clipboard" in navigator)) return;
+  try{
+    const text=await navigator.clipboard.readText();
+    if(!text||text===lastClipboard) return;
+    if(!/^https?:\/\//i.test(text.trim())) return;
+    lastClipboard=text.trim();
+    if(clipboardBannerShown) return;
+    showClipboardBanner(text.trim());
+  }catch(e){}
+}
+function showClipboardBanner(url){
+  clipboardBannerShown=true;
+  const existing=document.getElementById("clipboard-banner");
+  if(existing) existing.remove();
+  const banner=document.createElement("div");
+  banner.id="clipboard-banner";
+  banner.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+      <span style="font-size:18px;flex-shrink:0;">🔗</span>
+      <div style="min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:1px;">Link detected in clipboard</div>
+        <div style="font-size:11px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${getDomain(url)}</div>
+      </div>
+    </div>
+    <button id="cb-save" style="background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">Save</button>
+    <button id="cb-dismiss" style="background:transparent;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;">✕</button>`;
+  banner.style.cssText="position:fixed;top:64px;left:12px;right:12px;background:#fff;border:1.5px solid #e8e6e1;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:150;box-shadow:0 4px 20px rgba(0,0,0,0.12);animation:slideDown 0.25s ease;";
+  document.body.appendChild(banner);
+  banner.querySelector("#cb-save").addEventListener("click",()=>{ banner.remove(); clipboardBannerShown=false; openShareDialog(url,""); });
+  banner.querySelector("#cb-dismiss").addEventListener("click",()=>{ banner.remove(); clipboardBannerShown=false; });
+  setTimeout(()=>{ if(banner.parentNode){ banner.remove(); clipboardBannerShown=false; } },8000);
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ clipboardBannerShown=false; setTimeout(checkClipboard,400); } });
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+function renderSidebar(){
+  $("sb-all-count").textContent=data.links.length;
+  $("sb-all").className=(view==="notebook"&&activeNbId===null)?"active":"";
+  const list=$("sb-nb-list"); list.innerHTML="";
+  data.notebooks.forEach(nb=>{
+    const el=document.createElement("div");
+    el.className="sb-nb-item"+(activeNbId===nb.id&&view==="notebook"?" active":"");
+    el.innerHTML=`<span class="sb-nb-emoji" style="background:${nb.color}18;">${nb.emoji}</span><span class="sb-nb-name">${nb.name}</span><span class="sb-nb-count">${linkCount(nb.id)}</span>`;
+    el.addEventListener("click",()=>openNotebook(nb.id));
+    list.appendChild(el);
+  });
+  const rel=activeNbId?data.links.filter(l=>l.notebookId===activeNbId):data.links;
+  const tags=[...new Set(rel.flatMap(l=>l.tags))];
+  const tagList=$("sb-tag-list"); tagList.innerHTML="";
+  $("sb-tags-label").style.display=tags.length?"":"none";
+  tags.forEach(tag=>{
+    const count=rel.filter(l=>l.tags.includes(tag)).length;
+    const el=document.createElement("div");
+    el.className="sb-tag-item"+(activeTag===tag?" active":"");
+    el.innerHTML=`<span>#${tag}</span><span class="sb-tag-count">${count}</span>`;
+    el.addEventListener("click",()=>{ activeTag=activeTag===tag?null:tag; if(view==="notebook")renderLinks(); renderSidebar(); });
+    tagList.appendChild(el);
+  });
+}
+
+// ── Shelf ──────────────────────────────────────────────────────────────────
+function renderShelf(){
+  $("shelf-meta").textContent=data.notebooks.length+" notebook"+(data.notebooks.length!==1?"s":"")+" · "+data.links.length+" links saved";
+  const grid=$("notebooks-grid"); grid.innerHTML="";
+  data.notebooks.forEach((nb,i)=>{
+    const count=linkCount(nb.id), lines=Array.from({length:Math.min(Math.max(count,2),8)});
+    const card=document.createElement("div"); card.className="nb-card"; card.style.animationDelay=(i*0.065)+"s";
+    card.innerHTML=`
+      <div class="nb-card-shadow"></div>
+      <div class="nb-card-body" style="box-shadow:0 2px 10px rgba(0,0,0,0.05),-3px 0 0 ${nb.color}77;">
+        <div class="nb-spine" style="background:${nb.color};"></div>
+        <div class="nb-card-top" style="background:linear-gradient(140deg,${nb.color}18 0%,${nb.color}05 100%);border-bottom:1px solid ${nb.color}15;">
+          <div class="nb-card-top-row"><span class="nb-card-emoji">${nb.emoji}</span>
+            <div style="display:flex;gap:4px;">
+              <button class="nb-edit-btn" title="Edit notebook">✏️</button>
+              <button class="nb-del-btn" title="Delete notebook">✕</button>
+            </div>
+          </div>
+          <div class="nb-lines">${lines.map((_,j)=>`<div class="nb-line" style="background:${nb.color+(j===0?"48":"1e")};width:${LINE_W[j%8]};"></div>`).join("")}</div>
+        </div>
+        <div class="nb-card-bottom"><div class="nb-card-name">${nb.name}</div><div class="nb-card-count">${count} ${count===1?"link":"links"}</div></div>
+      </div>`;
+    const body=card.querySelector(".nb-card-body"), shadow=card.querySelector(".nb-card-shadow");
+    card.addEventListener("mouseenter",()=>{ body.style.transform="translateY(-7px) rotate(-0.4deg)"; body.style.boxShadow=`0 16px 40px rgba(0,0,0,0.12),-4px 0 0 ${nb.color}`; shadow.style.transform="scaleX(0.86) translateY(4px)"; });
+    card.addEventListener("mouseleave",()=>{ body.style.transform=""; body.style.boxShadow=`0 2px 10px rgba(0,0,0,0.05),-3px 0 0 ${nb.color}77`; shadow.style.transform=""; });
+    card.addEventListener("click",e=>{ if(e.target.classList.contains("nb-del-btn")||e.target.classList.contains("nb-edit-btn"))return; openNotebook(nb.id); });
+    card.querySelector(".nb-del-btn").addEventListener("click",e=>{ e.stopPropagation(); deleteNotebook(nb.id); });
+    card.querySelector(".nb-edit-btn").addEventListener("click",e=>{ e.stopPropagation(); openEditNotebook(nb); });
+    grid.appendChild(card);
+  });
+  const add=document.createElement("div"); add.className="add-nb-card"; add.style.animationDelay=(data.notebooks.length*0.065)+"s";
+  add.innerHTML=`<span class="plus">+</span><span class="label">New Notebook</span>`;
+  add.addEventListener("click",()=>openModal("addNotebook"));
+  grid.appendChild(add);
+}
+
+// ── Links ──────────────────────────────────────────────────────────────────
+function renderLinks(){
+  const filtered=getFiltered(), grid=$("links-grid"), empty=$("empty-state"), fi=$("filter-info");
+  if(searchQuery||activeTag){
+    fi.style.display="block";
+    fi.innerHTML=`${filtered.length} result${filtered.length!==1?"s":""}${activeTag?` · #${activeTag}`:""}${searchQuery?` · "${searchQuery}"`:""}  <span class="clear-btn">Clear</span>`;
+    fi.querySelector(".clear-btn").addEventListener("click",()=>{ searchQuery=""; activeTag=null; $("search-input").value=""; renderLinks(); renderSidebar(); });
+  } else fi.style.display="none";
+  grid.innerHTML="";
+  if(filtered.length===0){ empty.style.display="block"; grid.style.display="none"; }
+  else{
+    empty.style.display="none"; grid.style.display="grid";
+    filtered.forEach(link=>{
+      const card=document.createElement("div"); card.className="link-card";
+      card.innerHTML=`
+        <button class="lc-del">✕</button>
+        <div class="lc-top">
+          <div class="lc-fav"><img src="${getFavicon(link.url)}" onerror="this.outerHTML='<span style=font-size:13px>🔗</span>'"/></div>
+          <div style="flex:1;min-width:0;">
+            <a class="lc-title" href="${link.url}" target="_blank" rel="noopener noreferrer">${link.title}</a>
+            <div class="lc-domain">${getDomain(link.url)}</div>
+          </div>
+        </div>
+        ${link.description?`<p class="lc-desc">${link.description}</p>`:""}
+        <div class="lc-bottom">
+          <div class="lc-tags">${link.tags.map(t=>`<span class="tag-pill${activeTag===t?" active":""}" data-tag="${t}">#${t}</span>`).join("")}</div>
+          <span class="lc-time">${timeAgo(link.createdAt)}</span>
+        </div>
+        <button class="lc-edit">✏️</button>`;
+      card.querySelector(".lc-del").addEventListener("click",()=>deleteLink(link.id));
+      card.querySelector(".lc-edit").addEventListener("click",()=>{ editTarget={...link,tags:link.tags.join(", ")}; openModal("editLink"); });
+      card.querySelectorAll(".tag-pill").forEach(p=>p.addEventListener("click",()=>{ activeTag=activeTag===p.dataset.tag?null:p.dataset.tag; renderLinks(); renderSidebar(); }));
+      grid.appendChild(card);
+    });
+  }
+}
+
+// ── View ───────────────────────────────────────────────────────────────────
+function setView(v){
+  view=v; const s=v==="shelf";
+  $("shelf").style.display=s?"block":"none";
+  $("notebook-view").style.display=s?"none":"flex";
+  $("logo").style.display=s?"":"none";
+  $("nb-header").style.display=s?"none":"flex";
+  $("search-input").style.display=s?"none":"";
+  $("btn-add-link").style.display=window.innerWidth<=600?(s?"none":""):"";
+  $("btn-new-notebook").style.display=s?"":"none";
+}
+function openNotebook(nbId){ activeNbId=nbId; activeTag=null; searchQuery=""; $("search-input").value=""; setView("notebook"); updateNbHeader(); renderLinks(); renderSidebar(); }
+function updateNbHeader(){
+  if(activeNbId){ const nb=getNb(activeNbId); if(nb){ $("nb-header-emoji").textContent=nb.emoji; $("nb-header-emoji").style.background=nb.color+"20"; $("nb-header-name").textContent=nb.name; $("nb-header-count").textContent=linkCount(nb.id); } }
+  else{ $("nb-header-emoji").textContent="🗂️"; $("nb-header-emoji").style.background="#f0ede8"; $("nb-header-name").textContent="All Links"; $("nb-header-count").textContent=data.links.length; }
+}
+function goHome(){ setView("shelf"); activeNbId=null; activeTag=null; searchQuery=""; $("search-input").value=""; renderShelf(); renderSidebar(); }
+function toggleSidebar(){ sidebarOpen=!sidebarOpen; $("sidebar").classList.toggle("collapsed",!sidebarOpen); }
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+function deleteLink(id){ data.links=data.links.filter(l=>l.id!==id); save(); renderLinks(); renderSidebar(); updateNbHeader(); showToast("Link removed"); }
+function deleteNotebook(id){ data.notebooks=data.notebooks.filter(n=>n.id!==id); data.links=data.links.filter(l=>l.notebookId!==id); save(); renderShelf(); renderSidebar(); showToast("Notebook deleted"); }
+
+// ── Modal ──────────────────────────────────────────────────────────────────
+function openEditNotebook(nb){
+  editTarget={...nb}; newNbEmoji=nb.emoji; newNbColor=nb.color; modalMode="editNotebook";
+  const overlay=$("modal-overlay"),title=$("modal-title"),body=$("modal-body");
+  overlay.classList.add("open");
+  title.textContent="Edit Notebook";
+  body.innerHTML=`
+    ${fld("Name","nb-name",nb.name,"My Notebook")}
+    <div class="field"><label>Emoji</label><div id="emoji-picker"></div></div>
+    <div class="field"><label>Color</label><div id="color-picker"></div></div>
+    <div class="modal-btns"><button class="btn-cancel" id="m-cancel">Cancel</button><button class="btn-confirm" id="m-confirm">Save Changes</button></div>`;
+  renderPickers();
+  $("m-cancel").addEventListener("click",closeModal);
+  $("m-confirm").addEventListener("click",confirmModal);
+}
+
+function openModal(mode){
+  modalMode=mode;
+  const overlay=$("modal-overlay"),title=$("modal-title"),body=$("modal-body");
+  overlay.classList.add("open");
+  if(mode==="addLink"||mode==="editLink"){
+    const lk=mode==="editLink"?editTarget:{url:"",title:"",description:"",tags:"",notebookId:activeNbId||""};
+    title.textContent=mode==="addLink"?"Save a Link":"Edit Link";
+    body.innerHTML=`
+      ${fld("URL","lk-url",lk.url,"https://...")}
+      ${fld("Title","lk-title",lk.title,"Give it a name")}
+      ${fld("Description","lk-desc",lk.description||"","What's it about? (optional)")}
+      ${fld("Tags","lk-tags",typeof lk.tags==="string"?lk.tags:lk.tags.join(", "),"design, tools, reading")}
+      <div class="field"><label>Notebook</label>
+        <select id="lk-nb"><option value="">— Select notebook —</option>
+        ${data.notebooks.map(n=>`<option value="${n.id}"${lk.notebookId===n.id?" selected":""}>${n.emoji} ${n.name}</option>`).join("")}
+        </select></div>
+      <div class="modal-btns"><button class="btn-cancel" id="m-cancel">Cancel</button><button class="btn-confirm" id="m-confirm">${mode==="addLink"?"Save Link":"Save Changes"}</button></div>`;
+  } else {
+    newNbEmoji="📁"; newNbColor=COLORS[0];
+    title.textContent="New Notebook";
+    body.innerHTML=`
+      ${fld("Name","nb-name","","My Notebook")}
+      <div class="field"><label>Emoji</label><div id="emoji-picker"></div></div>
+      <div class="field"><label>Color</label><div id="color-picker"></div></div>
+      <div class="modal-btns"><button class="btn-cancel" id="m-cancel">Cancel</button><button class="btn-confirm" id="m-confirm">Create Notebook</button></div>`;
+    renderPickers();
+  }
+  $("m-cancel").addEventListener("click",closeModal);
+  $("m-confirm").addEventListener("click",confirmModal);
+}
+
+function fld(label,id,val,ph){ return`<div class="field"><label>${label}</label><input id="${id}" value="${(val||"").replace(/"/g,"&quot;")}" placeholder="${ph}"/></div>`; }
+function renderPickers(){
+  const ep=$("emoji-picker");
+  if(ep){ ep.innerHTML=EMOJIS.map(e=>`<span class="ep-em${newNbEmoji===e?" sel":""}" data-e="${e}">${e}</span>`).join(""); ep.querySelectorAll(".ep-em").forEach(el=>el.addEventListener("click",()=>{ newNbEmoji=el.dataset.e; renderPickers(); })); }
+  const cp=$("color-picker");
+  if(cp){ cp.innerHTML=COLORS.map(c=>`<div class="cp-c${newNbColor===c?" sel":""}" data-c="${c}" style="background:${c};border-color:${newNbColor===c?"#1a1a1a":"transparent"};${newNbColor===c?"outline:2px solid #fff;outline-offset:-4px;":""}"></div>`).join(""); cp.querySelectorAll(".cp-c").forEach(el=>el.addEventListener("click",()=>{ newNbColor=el.dataset.c; renderPickers(); })); }
+}
+function closeModal(){ $("modal-overlay").classList.remove("open"); editTarget=null; modalMode=null; }
+function confirmModal(){
+  if(modalMode==="addLink"||modalMode==="editLink"){
+    const url=$("lk-url").value.trim(), ttl=$("lk-title").value.trim();
+    if(!url||!ttl) return;
+    const tags=$("lk-tags").value.split(",").map(t=>t.trim()).filter(Boolean);
+    const notebookId=$("lk-nb").value||activeNbId||data.notebooks[0]?.id||"";
+    const desc=$("lk-desc").value.trim();
+    if(modalMode==="addLink"){ data.links.unshift({id:"l"+Date.now(),notebookId,url,title:ttl,description:desc,tags,createdAt:Date.now()}); showToast("Link saved! 🔖"); }
+    else{ data.links=data.links.map(l=>l.id===editTarget.id?{...editTarget,url,title:ttl,description:desc,notebookId,tags}:l); showToast("Link updated ✨"); }
+    save(); closeModal();
+    if(view==="notebook"){ renderLinks(); renderSidebar(); updateNbHeader(); }
+    else{ renderShelf(); renderSidebar(); }
+  } else if(modalMode==="editNotebook"){
+    const name=$("nb-name").value.trim(); if(!name) return;
+    data.notebooks=data.notebooks.map(n=>n.id===editTarget.id?{...n,name,emoji:newNbEmoji,color:newNbColor}:n);
+    if(activeNbId===editTarget.id) updateNbHeader();
+    save(); closeModal(); renderShelf(); renderSidebar(); showToast("Notebook updated ✨");
+  } else {
+    const name=$("nb-name").value.trim(); if(!name) return;
+    data.notebooks.push({id:"nb"+Date.now(),name,emoji:newNbEmoji,color:newNbColor});
+    save(); closeModal(); renderShelf(); renderSidebar(); showToast(`"${name}" created 📒`);
+  }
+}
+
+// ── Events ─────────────────────────────────────────────────────────────────
+$("toggle-btn").addEventListener("click",()=>{ if(window.innerWidth<=600){ $("sidebar").classList.contains("mobile-open")?($("sidebar").classList.remove("mobile-open"),$("sidebar-overlay").classList.remove("open")):($("sidebar").classList.add("mobile-open"),$("sidebar-overlay").classList.add("open")); }else{ toggleSidebar(); } });
+$("sidebar-overlay").addEventListener("click",()=>{ $("sidebar").classList.remove("mobile-open"); $("sidebar-overlay").classList.remove("open"); });
+$("mob-btn-home").addEventListener("click",()=>{ goHome(); $("sidebar").classList.remove("mobile-open"); $("sidebar-overlay").classList.remove("open"); });
+$("mob-btn-sidebar").addEventListener("click",()=>{ $("sidebar").classList.contains("mobile-open")?($("sidebar").classList.remove("mobile-open"),$("sidebar-overlay").classList.remove("open")):($("sidebar").classList.add("mobile-open"),$("sidebar-overlay").classList.add("open")); });
+$("mob-btn-add").addEventListener("click",()=>openModal("addLink"));
+$("mob-btn-new-nb").addEventListener("click",()=>openModal("addNotebook"));
+$("mob-btn-search-toggle").addEventListener("click",()=>{ if(view!=="notebook"){ openNotebook(activeNbId); return; } const s=$("search-input"); const hidden=s.style.display==="none"||s.style.display===""; s.style.display=hidden?"block":"none"; if(hidden)s.focus(); });
+$("logo").addEventListener("click",goHome);
+$("nb-header").addEventListener("click",goHome);
+$("btn-new-notebook").addEventListener("click",()=>openModal("addNotebook"));
+$("btn-add-link").addEventListener("click",()=>openModal("addLink"));
+$("sb-add-nb").addEventListener("click",()=>openModal("addNotebook"));
+$("sb-all").addEventListener("click",()=>{ activeNbId=null; activeTag=null; openNotebook(null); });
+$("search-input").addEventListener("input",e=>{ searchQuery=e.target.value; renderLinks(); renderSidebar(); });
+$("modal-overlay").addEventListener("click",e=>{ if(e.target===$("modal-overlay")) closeModal(); });
+$("btn-bookmarklet").addEventListener("click",()=>{ buildBookmarklet(); $("bm-modal").classList.add("open"); });
+$("bm-close").addEventListener("click",()=>$("bm-modal").classList.remove("open"));
+$("bm-modal").addEventListener("click",e=>{ if(e.target===$("bm-modal")) $("bm-modal").classList.remove("open"); });
+
+// ── Bookmarklet ────────────────────────────────────────────────────────────
+function buildBookmarklet(){
+  const base=window.location.origin+window.location.pathname.replace(/\/$/,"");
+  const script=`(function(){var u=encodeURIComponent(location.href),t=encodeURIComponent(document.title);var w=window.open('${base}?url='+u+'&title='+t,'_blank','width=440,height=580,top='+(screen.height/2-290)+',left='+(screen.width/2-220));if(!w)alert('Allow popups for this site to use the Linkpad bookmarklet.');})();`;
+  $("bm-drag-btn").href="javascript:"+script;
+}
+
+// ── Service Worker ─────────────────────────────────────────────────────────
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("sw.js").then(reg=>reg.update()).catch(()=>{});
+  });
+  navigator.serviceWorker.addEventListener("message",e=>{ if(e.data&&e.data.type==="SHARE_TARGET") openShareDialog(e.data.url,e.data.title); });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+setView("shelf");
+renderShelf();
+renderSidebar();
+</script>
+</div><!-- /app-wrapper -->
+</body>
+</html>
