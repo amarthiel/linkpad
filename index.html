@@ -116,7 +116,7 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
 .link-card:hover .lc-del,.link-card:hover .lc-edit{opacity:1;}
 .lc-del:hover,.lc-edit:hover{background:#f0ede8;}
 .lc-actions{position:absolute;top:9px;right:9px;display:flex;gap:2px;}
-.lc-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px;}
+.lc-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px;padding-right:52px;}
 .lc-fav{width:30px;height:30px;border-radius:7px;background:#f8f7f4;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
 .lc-fav img{width:16px;height:16px;}
 .lc-title{font-weight:600;font-size:13px;color:#1a1a1a;text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -519,7 +519,12 @@ function renderSidebar(){
     const el=document.createElement("div");
     el.className="sb-nb-item"+(activeNbId===nb.id&&view==="notebook"?" active":"");
     el.innerHTML=`<span class="sb-nb-emoji" style="background:${nb.color}18;">${nb.emoji}</span><span class="sb-nb-name">${nb.name}</span><span class="sb-nb-count">${linkCount(nb.id)}</span>`;
-    el.addEventListener("click",()=>openNotebook(nb.id));
+    el.addEventListener("click",()=>{
+      openNotebook(nb.id);
+      // Close mobile sidebar after selecting a notebook
+      $("sidebar").classList.remove("mobile-open");
+      $("sidebar-overlay").classList.remove("open");
+    });
     list.appendChild(el);
   });
   const rel=activeNbId?data.links.filter(l=>l.notebookId===activeNbId):data.links;
@@ -757,7 +762,7 @@ $("nb-header").addEventListener("click",goHome);
 $("btn-new-notebook").addEventListener("click",()=>openModal("addNotebook"));
 $("btn-add-link").addEventListener("click",()=>openModal("addLink"));
 $("sb-add-nb").addEventListener("click",()=>openModal("addNotebook"));
-$("sb-all").addEventListener("click",()=>{activeNbId=null;activeTag=null;openNotebook(null);});
+$("sb-all").addEventListener("click",()=>{activeNbId=null;activeTag=null;openNotebook(null);$("sidebar").classList.remove("mobile-open");$("sidebar-overlay").classList.remove("open");});
 $("search-input").addEventListener("input",e=>{searchQuery=e.target.value;renderLinks();renderSidebar();});
 $("modal-overlay").addEventListener("click",e=>{if(e.target===$("modal-overlay"))closeModal();});
 $("btn-bookmarklet").addEventListener("click",()=>{buildBookmarklet();$("bm-modal").classList.add("open");});
