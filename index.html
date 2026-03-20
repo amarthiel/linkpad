@@ -439,13 +439,14 @@ function openShareDialog(sharedUrl,sharedTitle){
 
 async function handleShareTarget(){
   const params=new URLSearchParams(window.location.search);
+  const bmUrl=params.get("bm-url"),bmTitle=params.get("bm-title");
   const paramUrl=params.get("url"),paramTitle=params.get("title"),action=params.get("action");
-  if(paramUrl||action)history.replaceState({},"",window.location.pathname);
-  // If this page has URL params, it IS the bookmarklet popup — handle it here
+  if(bmUrl||paramUrl||action)history.replaceState({},"",window.location.pathname);
+  // Bookmarklet popup: bm-url param, SW never sees this, no broadcast to other tabs
+  if(bmUrl){openShareDialog(bmUrl,bmTitle||"");return;}
+  // Mobile share sheet via SW redirect
   if(paramUrl){openShareDialog(paramUrl,paramTitle||"");return;}
   if(action==="add"){openModal("addLink");return;}
-  // Otherwise check for SW share target (mobile share sheet), but only if we're
-  // not a background tab that just spawned a bookmarklet popup
   if("caches" in window){
     try{
       const cache=await caches.open("linkpad-share");
@@ -707,7 +708,7 @@ function confirmModal(){
     const tags=$("lk-tags").value.split(",").map(t=>t.trim()).filter(Boolean);
     const notebookId=$("lk-nb").value||activeNbId||data.notebooks[0]?.id||"";
     const desc=$("lk-desc").value.trim();
-    if(modalMode==="addLink"){data.links.unshift({id:"l"+Date.now(),notebookId,url,title:ttl,description:desc,tags,createdAt:Date.now()});showToast("Link saved! 🔖");}
+    if(modalMode==="addLink"){data.links.unshift({id:"l"+Date.now(),notebookId,url,title:ttl,description:desc,tags,createdAt:Date.now()});showToast("Link saved! 🔖");if(window.opener)setTimeout(()=>window.close(),800);}
     else{data.links=data.links.map(l=>l.id===editTarget.id?{...editTarget,url,title:ttl,description:desc,notebookId,tags}:l);showToast("Link updated ✨");}
     save();closeModal();
     if(view==="notebook"){renderLinks();renderSidebar();updateNbHeader();}
@@ -749,18 +750,14 @@ $("import-file").addEventListener("change",e=>importData(e.target.files[0]));
 // ── Bookmarklet ────────────────────────────────────────────────────────────
 function buildBookmarklet(){
   const base=window.location.origin+window.location.pathname.replace(/\/$/,"");
-  const script=`(function(){var u=encodeURIComponent(location.href),t=encodeURIComponent(document.title);var w=window.open('${base}?url='+u+'&title='+t,'_blank','width=440,height=580,top='+(screen.height/2-290)+',left='+(screen.width/2-220));if(!w)alert('Allow popups for this site to use the Linkpad bookmarklet.');})();`;
+  const script=`(function(){var u=encodeURIComponent(location.href),t=encodeURIComponent(document.title);var w=window.open('${base}?bm-url='+u+'&bm-title='+t,'_blank','width=440,height=580,top='+(screen.height/2-290)+',left='+(screen.width/2-220));if(!w)alert('Allow popups for this site to use the Linkpad bookmarklet.');})();`;
   $("bm-drag-btn").href="javascript:"+script;
 }
 
 // ── Service Worker ─────────────────────────────────────────────────────────
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>reg.update()).catch(()=>{});});
-  // Only handle SW share messages if this window doesn't have an opener (i.e. not a bookmarklet popup target)
-  // and wasn't opened as a bookmarklet popup itself — prevents double dialog
-  navigator.serviceWorker.addEventListener("message",e=>{
-    if(e.data&&e.data.type==="SHARE_TARGET"&&!window.opener)openShareDialog(e.data.url,e.data.title);
-  });
+  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.type==="SHARE_TARGET")openShareDialog(e.data.url,e.data.title);});
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
