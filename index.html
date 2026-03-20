@@ -441,10 +441,11 @@ async function handleShareTarget(){
   const params=new URLSearchParams(window.location.search);
   const paramUrl=params.get("url"),paramTitle=params.get("title"),action=params.get("action");
   if(paramUrl||action)history.replaceState({},"",window.location.pathname);
-  // Only open dialog for URL params if this tab IS the target (not the bookmarklet opener tab)
-  // The bookmarklet opens a new popup window with the URL, so we handle it there, not in the background tab
-  if(paramUrl&&window.opener===null){openShareDialog(paramUrl,paramTitle||"");return;}
+  // If this page has URL params, it IS the bookmarklet popup — handle it here
+  if(paramUrl){openShareDialog(paramUrl,paramTitle||"");return;}
   if(action==="add"){openModal("addLink");return;}
+  // Otherwise check for SW share target (mobile share sheet), but only if we're
+  // not a background tab that just spawned a bookmarklet popup
   if("caches" in window){
     try{
       const cache=await caches.open("linkpad-share");
@@ -755,7 +756,11 @@ function buildBookmarklet(){
 // ── Service Worker ─────────────────────────────────────────────────────────
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>reg.update()).catch(()=>{});});
-  navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.type==="SHARE_TARGET")openShareDialog(e.data.url,e.data.title);});
+  // Only handle SW share messages if this window doesn't have an opener (i.e. not a bookmarklet popup target)
+  // and wasn't opened as a bookmarklet popup itself — prevents double dialog
+  navigator.serviceWorker.addEventListener("message",e=>{
+    if(e.data&&e.data.type==="SHARE_TARGET"&&!window.opener)openShareDialog(e.data.url,e.data.title);
+  });
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
