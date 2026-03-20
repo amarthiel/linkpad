@@ -1,4 +1,4 @@
-const CACHE = "linkpad-v3";
+const CACHE = "linkpad-v4";
 const ASSETS = [
   "/linkpad/",
   "/linkpad/index.html",
@@ -26,7 +26,8 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  if(url.pathname === "/linkpad/" && url.searchParams.has("url")) {
+  // Only intercept mobile share-sheet requests (?url=), NOT bookmarklet (?bm-url=)
+  if(url.pathname === "/linkpad/" && url.searchParams.has("url") && !url.searchParams.has("bm-url")) {
     const sharedUrl = url.searchParams.get("url") || "";
     const sharedTitle = url.searchParams.get("title") || "";
     e.respondWith(

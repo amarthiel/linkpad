@@ -112,11 +112,10 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
 #empty-state small{font-size:13px;color:#bbb;display:block;margin-top:5px;}
 .link-card{background:#fff;border-radius:13px;padding:15px;border:1px solid #e8e6e1;position:relative;transition:box-shadow 0.18s,transform 0.16s;}
 .link-card:hover{box-shadow:0 6px 26px rgba(0,0,0,0.09);transform:translateY(-2px);}
-.lc-del,.lc-edit{position:absolute;border:none;background:transparent;cursor:pointer;color:#ccc;padding:3px 6px;border-radius:6px;font-size:12px;opacity:0;transition:opacity 0.14s,background 0.13s;}
+.lc-del,.lc-edit{border:none;background:transparent;cursor:pointer;color:#ccc;padding:3px 6px;border-radius:6px;font-size:12px;opacity:0;transition:opacity 0.14s,background 0.13s;}
 .link-card:hover .lc-del,.link-card:hover .lc-edit{opacity:1;}
-.lc-del{top:9px;right:9px;}
-.lc-edit{bottom:9px;right:9px;}
 .lc-del:hover,.lc-edit:hover{background:#f0ede8;}
+.lc-actions{position:absolute;top:9px;right:9px;display:flex;gap:2px;}
 .lc-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px;}
 .lc-fav{width:30px;height:30px;border-radius:7px;background:#f8f7f4;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
 .lc-fav img{width:16px;height:16px;}
@@ -206,6 +205,7 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
   #mobile-nav{display:flex;}
   /* Always show action buttons on mobile — hover doesn't exist on touch */
   .lc-del,.lc-edit{opacity:1;}
+  .lc-actions{opacity:1;}
   .nb-del-btn,.nb-edit-btn{opacity:1;}
 }
 
@@ -239,8 +239,8 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
   </div>
   <div id="header-right">
     <button id="btn-bookmarklet">🔖 Bookmarklet</button>
-    <button id="btn-export" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:10px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#888;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#888';">⬇ Export</button>
-    <label id="btn-import" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:10px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#888;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#888';">⬆ Import<input type="file" id="import-file" accept=".json" style="display:none;"/></label>
+    <button id="btn-export" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:10px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#888;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#888';">⬆ Export</button>
+    <label id="btn-import" style="background:transparent;border:1.5px solid #e8e6e1;border-radius:10px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#888;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='#1a1a1a';this.style.color='#1a1a1a';" onmouseout="this.style.borderColor='#e8e6e1';this.style.color='#888';">⬇ Import<input type="file" id="import-file" accept=".json" style="display:none;"/></label>
     <input type="text" id="search-input" placeholder="Search links…"/>
     <button class="btn-primary" id="btn-add-link">+ Add Link</button>
     <button class="btn-primary" id="btn-new-notebook">+ New Notebook</button>
@@ -387,11 +387,28 @@ function importData(file){
     try{
       const imported=JSON.parse(e.target.result);
       if(!imported.notebooks||!imported.links) throw new Error("Invalid file");
-      // Merge: add imported links/notebooks that don't already exist
+      // Notebooks: dedupe by ID OR by name+emoji+color fingerprint
       const existingNbIds=new Set(data.notebooks.map(n=>n.id));
+      const existingNbFingerprints=new Set(data.notebooks.map(n=>`${n.name}|${n.emoji}|${n.color}`));
+      // Build a map from imported nb id → existing nb id (for remapping links)
+      const nbIdMap={};
+      const newNbs=[];
+      imported.notebooks.forEach(n=>{
+        const fp=`${n.name}|${n.emoji}|${n.color}`;
+        if(existingNbIds.has(n.id)){nbIdMap[n.id]=n.id;}
+        else if(existingNbFingerprints.has(fp)){
+          // Same notebook by appearance — find the existing one and remap
+          const match=data.notebooks.find(e=>e.name===n.name&&e.emoji===n.emoji&&e.color===n.color);
+          if(match)nbIdMap[n.id]=match.id;
+        }else{
+          newNbs.push(n);nbIdMap[n.id]=n.id;
+        }
+      });
+      // Links: dedupe by ID, and remap notebookId if needed
       const existingLinkIds=new Set(data.links.map(l=>l.id));
-      const newNbs=imported.notebooks.filter(n=>!existingNbIds.has(n.id));
-      const newLinks=imported.links.filter(l=>!existingLinkIds.has(l.id));
+      const newLinks=imported.links
+        .filter(l=>!existingLinkIds.has(l.id))
+        .map(l=>({...l,notebookId:nbIdMap[l.notebookId]||l.notebookId}));
       data.notebooks=[...data.notebooks,...newNbs];
       data.links=[...newLinks,...data.links];
       save(); refreshAll();
@@ -602,7 +619,10 @@ function renderLinks(){
     filtered.forEach(link=>{
       const card=document.createElement("div");card.className="link-card";
       card.innerHTML=`
-        <button class="lc-del">✕</button>
+        <div class="lc-actions">
+          <button class="lc-edit">✏️</button>
+          <button class="lc-del">✕</button>
+        </div>
         <div class="lc-top">
           <div class="lc-fav"><img src="${getFavicon(link.url)}" onerror="this.outerHTML='<span style=font-size:13px>🔗</span>'"/></div>
           <div style="flex:1;min-width:0;">
@@ -614,8 +634,7 @@ function renderLinks(){
         <div class="lc-bottom">
           <div class="lc-tags">${link.tags.map(t=>`<span class="tag-pill${activeTag===t?" active":""}" data-tag="${t}">#${t}</span>`).join("")}</div>
           <span class="lc-time">${timeAgo(link.createdAt)}</span>
-        </div>
-        <button class="lc-edit">✏️</button>`;
+        </div>`;
       card.querySelector(".lc-del").addEventListener("click",()=>deleteLink(link.id));
       card.querySelector(".lc-edit").addEventListener("click",()=>{editTarget={...link,tags:link.tags.join(", ")};openModal("editLink");});
       card.querySelectorAll(".tag-pill").forEach(p=>p.addEventListener("click",()=>{activeTag=activeTag===p.dataset.tag?null:p.dataset.tag;renderLinks();renderSidebar();}));
