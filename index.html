@@ -204,6 +204,9 @@ body{font-family:'DM Sans','Segoe UI',sans-serif;background:#f8f7f4;min-height:1
   #btn-new-notebook{display:none !important;}
   #notebooks-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;}
   #mobile-nav{display:flex;}
+  /* Always show action buttons on mobile — hover doesn't exist on touch */
+  .lc-del,.lc-edit{opacity:1;}
+  .nb-del-btn,.nb-edit-btn{opacity:1;}
 }
 
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -438,7 +441,9 @@ async function handleShareTarget(){
   const params=new URLSearchParams(window.location.search);
   const paramUrl=params.get("url"),paramTitle=params.get("title"),action=params.get("action");
   if(paramUrl||action)history.replaceState({},"",window.location.pathname);
-  if(paramUrl){openShareDialog(paramUrl,paramTitle||"");return;}
+  // Only open dialog for URL params if this tab IS the target (not the bookmarklet opener tab)
+  // The bookmarklet opens a new popup window with the URL, so we handle it there, not in the background tab
+  if(paramUrl&&window.opener===null){openShareDialog(paramUrl,paramTitle||"");return;}
   if(action==="add"){openModal("addLink");return;}
   if("caches" in window){
     try{
@@ -507,7 +512,12 @@ function renderSidebar(){
     const el=document.createElement("div");
     el.className="sb-tag-item"+(activeTag===tag?" active":"");
     el.innerHTML=`<span>#${tag}</span><span class="sb-tag-count">${count}</span>`;
-    el.addEventListener("click",()=>{activeTag=activeTag===tag?null:tag;if(view==="notebook")renderLinks();renderSidebar();});
+    el.addEventListener("click",()=>{
+      activeTag=activeTag===tag?null:tag;
+      // If on homepage, switch to all-links view so tag filter is visible
+      if(view==="shelf"){activeNbId=null;setView("notebook");updateNbHeader();}
+      renderLinks();renderSidebar();
+    });
     tagList.appendChild(el);
   });
 }
@@ -622,7 +632,6 @@ function setView(v){
   $("logo").style.display=s?"":"none";
   $("nb-header").style.display=s?"none":"flex";
   $("search-input").style.display=s?"none":"";
-  $("btn-add-link").style.display=window.innerWidth<=600?(s?"none":""):"";
   $("btn-new-notebook").style.display=s?"":"none";
 }
 function openNotebook(nbId){activeNbId=nbId;activeTag=null;searchQuery="";$("search-input").value="";setView("notebook");updateNbHeader();renderLinks();renderSidebar();}
@@ -692,8 +701,8 @@ function renderPickers(){
 function closeModal(){$("modal-overlay").classList.remove("open");editTarget=null;modalMode=null;}
 function confirmModal(){
   if(modalMode==="addLink"||modalMode==="editLink"){
-    const url=$("lk-url").value.trim(),ttl=$("lk-title").value.trim();
-    if(!url||!ttl)return;
+    const url=$("lk-url").value.trim(),ttl=$("lk-title").value.trim()||getDomain($("lk-url").value.trim());
+    if(!url)return;
     const tags=$("lk-tags").value.split(",").map(t=>t.trim()).filter(Boolean);
     const notebookId=$("lk-nb").value||activeNbId||data.notebooks[0]?.id||"";
     const desc=$("lk-desc").value.trim();
